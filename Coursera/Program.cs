@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 namespace Coursera
 {
@@ -62,16 +61,17 @@ namespace Coursera
                 var pix = poly[i].X;
                 var pjy = poly[j].Y;
                 var pjx = poly[j].X;
-                
+
                 if ((piy <= pt.Y && pt.Y < pjy || pjy <= pt.Y && pt.Y < piy) &&
-                    Math.Abs(pjy - piy) > double.Epsilon 
+                    Math.Abs(pjy - piy) > double.Epsilon
                     && pt.X < (pjx - pix) * (pt.Y - piy) / (pjy - piy) + pix)
                     result = !result;
             }
+
             return result;
         }
 
-        
+
         public Orientation CheckPointOrientation(VectorI pt)
         {
             var segments = Segments.ToArray();
@@ -121,6 +121,21 @@ namespace Coursera
 
     public struct VectorI
     {
+        private bool Equals(VectorI other)
+        {
+            return X.Equals(other.X) && Y.Equals(other.Y);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is VectorI other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(X, Y);
+        }
+
         public double X { get; }
         public double Y { get; }
         public static VectorI NaN => new VectorI(double.NaN, double.NaN);
@@ -215,14 +230,14 @@ namespace Coursera
             var polygon = ReadPolygon(stdIn[1], segPtCnt);
             var countOfPt = Parse.ReadCount(stdIn[2]);
             string[] result = new string[countOfPt];
-            
+
             for (int i = 0; i < countOfPt; i++)
             {
                 var vec = Parse.ReadVectorI(stdIn[i + 3]);
                 var orientation = polygon.CheckPointOrientation(vec);
                 result[i] = Parse.ParseOrientation(orientation);
             }
-            
+
             return result;
         }
     }
