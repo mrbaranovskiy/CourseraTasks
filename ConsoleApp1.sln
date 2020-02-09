@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{86A00F02-3369-4F00-B68C-21598C41102E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chess", "Chess\Chess.csproj", "{AFB84E1F-BFA8-4352-9E14-D5742D0BA41A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coursera", "Coursera\Coursera.csproj", "{B38783A9-13B0-4699-B83F-2565C200ACAE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86A00F02-3369-4F00-B68C-21598C41102E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86A00F02-3369-4F00-B68C-21598C41102E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86A00F02-3369-4F00-B68C-21598C41102E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86A00F02-3369-4F00-B68C-21598C41102E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFB84E1F-BFA8-4352-9E14-D5742D0BA41A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFB84E1F-BFA8-4352-9E14-D5742D0BA41A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFB84E1F-BFA8-4352-9E14-D5742D0BA41A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFB84E1F-BFA8-4352-9E14-D5742D0BA41A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
