@@ -16,12 +16,12 @@
         public string[] ProcessTask(string[] stdIn)
         {
             var triangle = ReadTriangle(stdIn[0]);
-            var count = Parse.ReadCount(stdIn[1]);
+            var count = Parse.ParseCount(stdIn[1]);
             var arr = new string[count];
             for (int i = 0; i < count; i++)
             {
                 var line = stdIn[i + 2];
-                var p = Parse.ReadVectorI(line);
+                var p = Parse.ParseVector(line);
 
                 arr[i] = Parse.ParseOrientation(triangle.OrientatePoint(p));
             }

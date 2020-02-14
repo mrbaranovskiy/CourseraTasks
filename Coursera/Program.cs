@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace Coursera
@@ -19,7 +20,7 @@ namespace Coursera
             if (!list.Any())
                 Console.Error.WriteLine("CMD LINE ERROR!!!");
             //
-            IProcessTask task1_1 = new IntersectionWithPoligon1_3();
+            IProcessTask task1_1 = new GrahamsAlgo2_1();
             var result = task1_1.ProcessTask(list.ToArray());
 
             Output(result);
@@ -39,9 +40,9 @@ namespace Coursera
 
         public Polygon2d(List<VectorI> points)
         {
-            if (points.Count() < 3)
-                throw new Exception("Bad polygon");
-            _lst = new LinkedList<VectorI>(points);
+            _lst = new LinkedList<VectorI>();
+
+            foreach (var vectorI in points) Add(vectorI);
         }
 
         public void Add(VectorI vector)
@@ -118,8 +119,7 @@ namespace Coursera
         }
     }
 
-
-    public struct VectorI
+    public struct VectorI : IComparable<VectorI>
     {
         private bool Equals(VectorI other)
         {
@@ -204,47 +204,58 @@ namespace Coursera
 
             return val > 0 ? Orientation.LEFT : Orientation.RIGHT;
         }
-    }
 
-    public class IntersectionWithPoligon1_3 : IProcessTask
-    {
-        private Polygon2d ReadPolygon(string pl, int count)
+        public int CompareTo(VectorI other)
         {
-            var arr = Parse.ParseIntArrayString(pl, count * 2);
-            var vertices = new List<VectorI>();
-
-            for (int i = 0; i < arr.Length; i += 2)
-            {
-                var x = arr[i];
-                var y = arr[i + 1];
-
-                vertices.Add(new VectorI(x, y));
-            }
-
-            return new Polygon2d(vertices);
-        }
-
-        public string[] ProcessTask(string[] stdIn)
-        {
-            var segPtCnt = Parse.ReadCount(stdIn[0]);
-            var polygon = ReadPolygon(stdIn[1], segPtCnt);
-            var countOfPt = Parse.ReadCount(stdIn[2]);
-            string[] result = new string[countOfPt];
-
-            for (int i = 0; i < countOfPt; i++)
-            {
-                var vec = Parse.ReadVectorI(stdIn[i + 3]);
-                var orientation = polygon.CheckPointOrientation(vec);
-                result[i] = Parse.ParseOrientation(orientation);
-            }
-
-            return result;
+            var xComparison = X.CompareTo(other.X);
+            if (xComparison != 0) return xComparison;
+            return Y.CompareTo(other.Y);
         }
     }
 
     interface IProcessTask
     {
         string[] ProcessTask(string[] stdIn);
+    }
+
+    public class GrahamsAlgo2_1 : IProcessTask
+    {
+        private List<VectorI> Vertices(string verticesStr, int count)
+        {
+            return Parse.ParseIntCoordinates(verticesStr, count);
+        }
+
+        public string[] ProcessTask(string[] stdIn)
+        {
+            var count = Parse.ParseCount(stdIn[0]);
+            var vertices = Parse.ParseIntCoordinates(stdIn[1], count);
+
+            var result = Graham(vertices);
+            return null;
+        }
+
+        private Polygon2d Graham(List<VectorI> vertices)
+        {
+            //check count
+            var ordered = vertices.OrderBy(n => n).ToArray();
+            var lu = new List<VectorI> {ordered[0], ordered[1]};
+
+
+            for (int i = 2; i < ordered.Length; i++)
+            {
+                var p = ordered[i];
+                lu.Add(p);
+
+                while (lu.Count > 2
+                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.LEFT)
+                    lu.RemoveAt(lu.Count - 2);
+            }
+
+            var poly = new Polygon2d(lu);
+
+            return poly;
+
+        }
     }
 
     public enum Orientation
@@ -293,15 +304,31 @@ namespace Coursera
             return arr;
         }
 
-        public static VectorI ReadVectorI(string vector)
+        public static List<VectorI> ParseIntCoordinates(string str, int num)
         {
-            var vec = Parse.ParseIntArrayString(vector, 2);
+            var nums = ParseIntArrayString(str, num * 2);
+            List<VectorI> vertices = new List<VectorI>();
+
+            for (int i = 0; i < num; i++)
+            {
+                var x = nums[i * 2];
+                var y = nums[i * 2 + 1];
+
+                vertices.Add(new VectorI(x, y));
+            }
+
+            return vertices;
+        }
+
+        public static VectorI ParseVector(string vector)
+        {
+            var vec = ParseIntArrayString(vector, 2);
 
             return new VectorI(vec[0], vec[1]);
         }
 
 
-        public static int ReadCount(string segCountStr)
+        public static int ParseCount(string segCountStr)
             => Parse.ParseIntArrayString(segCountStr, 1)[0];
     }
 
