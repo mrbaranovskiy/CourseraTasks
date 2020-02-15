@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace Coursera
@@ -33,8 +33,79 @@ namespace Coursera
         }
     }
 
+    public class GrahamsAlgo2_1 : IProcessTask
+    {
+        private List<VectorI> Vertices(string verticesStr, int count)
+        {
+            return Parse.ParseIntCoordinates(verticesStr, count);
+        }
 
-    public struct Polygon2d
+        public string[] ProcessTask(string[] stdIn)
+        {
+            var count = Parse.ParseCount(stdIn[0]);
+            var vertices = Parse.ParseIntCoordinates(stdIn[1], count);
+            var result = new string[2];
+            if (count == 1)
+            {
+                result[0] = "0";
+                result[1] = vertices.First().ToString();
+                return result;
+
+            }
+
+            var poly = Graham(vertices);
+
+
+
+            result[0] = poly.Count.ToString();
+            result[1] = poly.ToString();
+
+            return result;
+        }
+
+
+        private Polygon2d Graham(List<VectorI> vertices)
+        {
+            if(vertices.Count < 3)
+                return new Polygon2d(vertices);
+            //check count
+            var ordered = vertices.OrderBy(n => n).ToArray();
+            var lu = new List<VectorI> {ordered[0], ordered[1]};
+
+
+            for (int i = 2; i < ordered.Length; i++)
+            {
+                var p = ordered[i];
+                lu.Add(p);
+
+                while (lu.Count > 2
+                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                    lu.RemoveAt(lu.Count - 2);
+            }
+
+            var limit = lu.Count + 1;
+
+            for (var i = ordered.Length - 3; i >= 0; i--)
+            {
+                var p = ordered[i];
+                lu.Add(p);
+
+                while (lu.Count > limit
+                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                    lu.RemoveAt(lu.Count - 2);
+            }
+
+            lu.RemoveAt(lu.Count - 1);
+            var poly = new Polygon2d(lu);
+
+            return poly;
+
+        }
+    }
+
+    #region STUFF
+
+     public struct Polygon2d : IEnumerable<VectorI>, ICollection<VectorI>
     {
         private LinkedList<VectorI> _lst;
 
@@ -45,10 +116,34 @@ namespace Coursera
             foreach (var vectorI in points) Add(vectorI);
         }
 
+
         public void Add(VectorI vector)
         {
             _lst.AddFirst(vector);
         }
+
+        public void Clear()
+        {
+            _lst.Clear();
+        }
+
+        public bool Contains(VectorI item)
+        {
+            return _lst.Contains(item);
+        }
+
+        public void CopyTo(VectorI[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(VectorI item)
+        {
+            return _lst.Remove(item);
+        }
+
+        public int Count => _lst.Count;
+        public bool IsReadOnly => false;
 
         private LinkedList<VectorI> List => _lst;
 
@@ -117,24 +212,45 @@ namespace Coursera
                 yield return new SegmentI(_lst.Last.Value, _lst.First.Value);
             }
         }
+
+        public IEnumerator<VectorI> GetEnumerator()
+        {
+            return _lst.GetEnumerator();
+        }
+
+        public override string ToString()
+        {
+            if (List == null || List.Count == 0)
+                return string.Empty;
+
+            if (List.Count == 1)
+                return $"{List.First.Value.X} {List.First.Value.Y}";
+            return List.Select(v => $"{v.X} {v.Y}").Aggregate((m, n) => m + " " + n);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 
     public struct VectorI : IComparable<VectorI>
     {
-        private bool Equals(VectorI other)
+        public override string ToString()
         {
-            return X.Equals(other.X) && Y.Equals(other.Y);
+            return $"{X} {Y}";
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is VectorI other && Equals(other);
-        }
+//        private bool Equals(VectorI other)
+//        {
+//            return X.Equals(other.X) && Y.Equals(other.Y);
+//        }
+//
+//        public override bool Equals(object obj)
+//        {
+//            return obj is VectorI other && Equals(other);
+//        }
 
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(X, Y);
-        }
 
         public double X { get; }
         public double Y { get; }
@@ -186,23 +302,28 @@ namespace Coursera
             return new VectorI(factor * rhs.X, factor * rhs.Y);
         }
 
+        public bool CounterClockWise(VectorI p, VectorI q)
+        {
+            return ((p.X - X) * (q.Y - Y)) > ((p.Y - Y) * (q.X - X));
+        }
+
         public Orientation CheckOrientation(VectorI a, VectorI b)
         {
             var val = (b.Y - Y) * (a.X - b.X) - (b.X - X) * (a.Y - b.Y);
 
-            if (Math.Abs(val) < double.Epsilon)
-            {
-                var minx = Math.Min(b.X, a.X);
-                var maxx = Math.Max(b.X, a.X);
-                var miny = Math.Min(b.Y, a.Y);
-                var maxy = Math.Max(b.Y, a.Y);
+//            if (Math.Abs(val) < double.Epsilon)
+//            {
+//                var minx = Math.Min(b.X, a.X);
+//                var maxx = Math.Max(b.X, a.X);
+//                var miny = Math.Min(b.Y, a.Y);
+//                var maxy = Math.Max(b.Y, a.Y);
+//
+//                if (X >= minx && X <= maxx && Y >= miny && Y <= maxy)
+//                    return Orientation.ON_SEGMENT;
+//                return Orientation.ONLINE;
+//            }
 
-                if (X >= minx && X <= maxx && Y >= miny && Y <= maxy)
-                    return Orientation.ON_SEGMENT;
-                return Orientation.ONLINE;
-            }
-
-            return val > 0 ? Orientation.LEFT : Orientation.RIGHT;
+            return val < 0 ? Orientation.RIGHT : Orientation.LEFT;
         }
 
         public int CompareTo(VectorI other)
@@ -216,46 +337,6 @@ namespace Coursera
     interface IProcessTask
     {
         string[] ProcessTask(string[] stdIn);
-    }
-
-    public class GrahamsAlgo2_1 : IProcessTask
-    {
-        private List<VectorI> Vertices(string verticesStr, int count)
-        {
-            return Parse.ParseIntCoordinates(verticesStr, count);
-        }
-
-        public string[] ProcessTask(string[] stdIn)
-        {
-            var count = Parse.ParseCount(stdIn[0]);
-            var vertices = Parse.ParseIntCoordinates(stdIn[1], count);
-
-            var result = Graham(vertices);
-            return null;
-        }
-
-        private Polygon2d Graham(List<VectorI> vertices)
-        {
-            //check count
-            var ordered = vertices.OrderBy(n => n).ToArray();
-            var lu = new List<VectorI> {ordered[0], ordered[1]};
-
-
-            for (int i = 2; i < ordered.Length; i++)
-            {
-                var p = ordered[i];
-                lu.Add(p);
-
-                while (lu.Count > 2
-                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.LEFT)
-                    lu.RemoveAt(lu.Count - 2);
-            }
-
-            var poly = new Polygon2d(lu);
-
-            return poly;
-
-        }
     }
 
     public enum Orientation
@@ -331,7 +412,6 @@ namespace Coursera
         public static int ParseCount(string segCountStr)
             => Parse.ParseIntArrayString(segCountStr, 1)[0];
     }
-
 
     public struct SegmentI
     {
@@ -414,4 +494,6 @@ namespace Coursera
             return false;
         }
     }
+    #endregion
+
 }
