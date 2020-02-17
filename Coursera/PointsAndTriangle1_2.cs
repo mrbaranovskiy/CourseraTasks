@@ -1,4 +1,6 @@
-﻿namespace Coursera
+﻿using System.Numerics;
+
+namespace Coursera
 {
     public class PointsAndTriangle1_2 : IProcessTask
     {
@@ -6,9 +8,9 @@
         {
             var tr = Parse.ParseIntArrayString(str, 6);
 
-            var a = new VectorI(tr[0], tr[1]);
-            var b = new VectorI(tr[2], tr[3]);
-            var c = new VectorI(tr[4], tr[5]);
+            var a = new Vector2(tr[0], tr[1]);
+            var b = new Vector2(tr[2], tr[3]);
+            var c = new Vector2(tr[4], tr[5]);
 
             return new SegmentI.TriangleI(a, b, c);
         }

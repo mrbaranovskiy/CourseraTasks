@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace Coursera
 {
@@ -9,6 +10,7 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
+            //var a = Vec.AngleSigned(new Vector2(3, 3), new Vector2(4, 3));
             var list = new List<string>();
             string input = null;
 
@@ -33,9 +35,32 @@ namespace Coursera
         }
     }
 
+    public class IsConvexAlgo_2_0 : IProcessTask
+    {
+        public string[] ProcessTask(string[] stdIn)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class LowerTangent_2_3 : IProcessTask
+    {
+        public string[] ProcessTask(string[] stdIn)
+        {
+            var countV = Parse.ParseCount(stdIn[0]);
+            var vertices = Parse.ParseIntCoordinates(stdIn[1], countV);
+            var countI = Parse.ParseCount(stdIn[2]);
+
+            var convex = new Polygon2d(vertices).ConvexHull();
+
+            var results = new string[countI];
+            return null;
+        }
+    }
+
     public class GrahamsAlgo2_1 : IProcessTask
     {
-        private List<VectorI> Vertices(string verticesStr, int count)
+        private List<Vector2> Vertices(string verticesStr, int count)
         {
             return Parse.ParseIntCoordinates(verticesStr, count);
         }
@@ -53,24 +78,44 @@ namespace Coursera
 
             }
 
-            var poly = Graham(vertices);
-
+            var poly = new Polygon2d(vertices);
 
 
             result[0] = poly.Count.ToString();
-            result[1] = poly.ToString();
+            var hull = poly.ConvexHull();
+            //result[1] = poly.ConvexHull().;
 
-            return result;
+            return null;
+        }
+    }
+
+    #region STUFF
+
+    public struct Polygon2d : IEnumerable<Vector2>, ICollection<Vector2>
+    {
+        private readonly List<Vector2> _points;
+
+        private LinkedList<Vector2> _lst;
+
+        private double CrossProduct(Vector2 a,
+            Vector2 b, Vector2 c)
+        {
+            double aa = a.X - b.X;
+            double bb = a.Y - b.Y;
+            double cc = c.X - b.X;
+            double dd = c.Y - b.Y;
+
+            return aa * dd - bb * cc;
         }
 
 
-        private Polygon2d Graham(List<VectorI> vertices)
+        public Polygon2d ConvexHull()
         {
-            if(vertices.Count < 3)
-                return new Polygon2d(vertices);
+            if (_points.Count < 3)
+                return new Polygon2d(_points);
             //check count
-            var ordered = vertices.OrderBy(n => n).ToArray();
-            var lu = new List<VectorI> {ordered[0], ordered[1]};
+            var ordered = _points.OrderBy(n => n).ToArray();
+            var lu = new List<Vector2> {ordered[0], ordered[1]};
 
 
             for (int i = 2; i < ordered.Length; i++)
@@ -79,7 +124,7 @@ namespace Coursera
                 lu.Add(p);
 
                 while (lu.Count > 2
-                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                       && Vec.CheckOrientation(lu[lu.Count - 3],lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
                     lu.RemoveAt(lu.Count - 2);
             }
 
@@ -91,7 +136,7 @@ namespace Coursera
                 lu.Add(p);
 
                 while (lu.Count > limit
-                       && lu[lu.Count - 3].CheckOrientation(lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                       && Vec.CheckOrientation(lu[lu.Count - 3],lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
                     lu.RemoveAt(lu.Count - 2);
             }
 
@@ -99,25 +144,40 @@ namespace Coursera
             var poly = new Polygon2d(lu);
 
             return poly;
-
         }
-    }
 
-    #region STUFF
-
-     public struct Polygon2d : IEnumerable<VectorI>, ICollection<VectorI>
-    {
-        private LinkedList<VectorI> _lst;
-
-        public Polygon2d(List<VectorI> points)
+        public Polygon2d(List<Vector2> points)
         {
-            _lst = new LinkedList<VectorI>();
+            _points = points;
+            _lst = new LinkedList<Vector2>();
 
-            foreach (var vectorI in points) Add(vectorI);
+            foreach (var Vector2 in points) Add(Vector2);
+        }
+
+        public bool IsConvex()
+        {
+            int q, l;
+            int count = _points.Count;
+
+            bool right = false;
+            bool left = false;
+
+            for (int i = 0; i < count; i++)
+            {
+                q = (i + 1) % count;
+                l = (q + 1) % count;
+
+                double dir = CrossProduct(_points[i], _points[q], _points[l]);
+                if (dir < 0) right = true;
+                else if (dir > 0) left = true;
+                if (right && left) return false;
+            }
+
+            return true;
         }
 
 
-        public void Add(VectorI vector)
+        public void Add(Vector2 vector)
         {
             _lst.AddFirst(vector);
         }
@@ -127,17 +187,17 @@ namespace Coursera
             _lst.Clear();
         }
 
-        public bool Contains(VectorI item)
+        public bool Contains(Vector2 item)
         {
             return _lst.Contains(item);
         }
 
-        public void CopyTo(VectorI[] array, int arrayIndex)
+        public void CopyTo(Vector2[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
 
-        public bool Remove(VectorI item)
+        public bool Remove(Vector2 item)
         {
             return _lst.Remove(item);
         }
@@ -145,9 +205,9 @@ namespace Coursera
         public int Count => _lst.Count;
         public bool IsReadOnly => false;
 
-        private LinkedList<VectorI> List => _lst;
+        private LinkedList<Vector2> List => _lst;
 
-        public static bool PointInPolygon(IList<VectorI> poly, VectorI pt)
+        public static bool PointInPolygon(IList<Vector2> poly, Vector2 pt)
         {
             int i, j;
             bool result = false;
@@ -168,21 +228,21 @@ namespace Coursera
         }
 
 
-        public Orientation CheckPointOrientation(VectorI pt)
+        public Orientation CheckPointOrientation(Vector2 pt)
         {
             var segments = Segments.ToArray();
-            var onBorder = segments.Any(n => pt.CheckOrientation(n.A, n.B) == Orientation.ON_SEGMENT);
+            var onBorder = segments.Any(n => Vec.CheckOrientation(pt,n.A, n.B) == Orientation.ON_SEGMENT);
 
             if (onBorder)
                 return Orientation.BORDER;
             else
             {
-                var ray = new RayI(pt, new VectorI(1, 0));
+                var ray = new RayI(pt, new Vector2(1, 0));
                 int count = 0;
 
                 foreach (var segmentI in segments)
                 {
-                    VectorI intersection;
+                    Vector2? intersection;
                     if (ray.RayWithSegment(segmentI, out intersection)) count++;
                 }
 
@@ -213,7 +273,7 @@ namespace Coursera
             }
         }
 
-        public IEnumerator<VectorI> GetEnumerator()
+        public IEnumerator<Vector2> GetEnumerator()
         {
             return _lst.GetEnumerator();
         }
@@ -231,106 +291,6 @@ namespace Coursera
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
-        }
-    }
-
-    public struct VectorI : IComparable<VectorI>
-    {
-        public override string ToString()
-        {
-            return $"{X} {Y}";
-        }
-
-//        private bool Equals(VectorI other)
-//        {
-//            return X.Equals(other.X) && Y.Equals(other.Y);
-//        }
-//
-//        public override bool Equals(object obj)
-//        {
-//            return obj is VectorI other && Equals(other);
-//        }
-
-
-        public double X { get; }
-        public double Y { get; }
-        public static VectorI NaN => new VectorI(double.NaN, double.NaN);
-
-        public VectorI(double x, double y)
-        {
-            X = x;
-            Y = y;
-        }
-
-        public static VectorI Mid(VectorI v0, VectorI v1, double factor)
-        {
-            return v0 * (1.0 - factor) + v1 * factor;
-        }
-
-        public VectorI Sub(VectorI v)
-        {
-            return new VectorI(this.X - v.X, this.Y - v.Y);
-        }
-
-        public static bool operator ==(VectorI left, VectorI right)
-        {
-            return Math.Abs(left.X - right.X) < double.Epsilon && Math.Abs(left.Y - right.Y) < double.Epsilon;
-        }
-
-        public static bool operator !=(VectorI left, VectorI right)
-        {
-            return !(left == right);
-        }
-
-        public static VectorI operator +(VectorI a, VectorI b)
-        {
-            return new VectorI(a.X + b.X, a.Y + b.Y);
-        }
-
-        public static VectorI operator -(VectorI left, VectorI right)
-        {
-            return new VectorI(left.X - right.X, left.Y - right.Y);
-        }
-
-        public static VectorI operator *(VectorI lef, double factor)
-        {
-            return new VectorI(lef.X * factor, lef.Y * factor);
-        }
-
-        public static VectorI operator *(double factor, VectorI rhs)
-        {
-            return new VectorI(factor * rhs.X, factor * rhs.Y);
-        }
-
-        public bool CounterClockWise(VectorI p, VectorI q)
-        {
-            return ((p.X - X) * (q.Y - Y)) > ((p.Y - Y) * (q.X - X));
-        }
-
-        public Orientation CheckOrientation(VectorI a, VectorI b)
-        {
-            var val = (b.Y - Y) * (a.X - b.X) - (b.X - X) * (a.Y - b.Y);
-
-//            if (Math.Abs(val) < double.Epsilon)
-//            {
-//                var minx = Math.Min(b.X, a.X);
-//                var maxx = Math.Max(b.X, a.X);
-//                var miny = Math.Min(b.Y, a.Y);
-//                var maxy = Math.Max(b.Y, a.Y);
-//
-//                if (X >= minx && X <= maxx && Y >= miny && Y <= maxy)
-//                    return Orientation.ON_SEGMENT;
-//                return Orientation.ONLINE;
-//            }
-
-            return val < 0 ? Orientation.RIGHT : Orientation.LEFT;
-        }
-
-        public int CompareTo(VectorI other)
-        {
-            var xComparison = X.CompareTo(other.X);
-            if (xComparison != 0) return xComparison;
-            return Y.CompareTo(other.Y);
         }
     }
 
@@ -385,27 +345,27 @@ namespace Coursera
             return arr;
         }
 
-        public static List<VectorI> ParseIntCoordinates(string str, int num)
+        public static List<Vector2> ParseIntCoordinates(string str, int num)
         {
             var nums = ParseIntArrayString(str, num * 2);
-            List<VectorI> vertices = new List<VectorI>();
+            List<Vector2> vertices = new List<Vector2>();
 
             for (int i = 0; i < num; i++)
             {
                 var x = nums[i * 2];
                 var y = nums[i * 2 + 1];
 
-                vertices.Add(new VectorI(x, y));
+                vertices.Add(new Vector2(x, y));
             }
 
             return vertices;
         }
 
-        public static VectorI ParseVector(string vector)
+        public static Vector2 ParseVector(string vector)
         {
             var vec = ParseIntArrayString(vector, 2);
 
-            return new VectorI(vec[0], vec[1]);
+            return new Vector2(vec[0], vec[1]);
         }
 
 
@@ -415,40 +375,40 @@ namespace Coursera
 
     public struct SegmentI
     {
-        public SegmentI(VectorI a, VectorI b)
+        public SegmentI(Vector2 a, Vector2 b)
         {
             A = a;
             B = b;
         }
 
-        public VectorI Dir => B.Sub(A);
+        public Vector2 Dir => B - A;
 
-        public VectorI A { get; }
-        public VectorI B { get; }
+        public Vector2 A { get; }
+        public Vector2 B { get; }
 
 
         public struct TriangleI
         {
-            private readonly VectorI _a;
-            private readonly VectorI _b;
-            private readonly VectorI _c;
+            private readonly Vector2 _a;
+            private readonly Vector2 _b;
+            private readonly Vector2 _c;
 
-            public TriangleI(VectorI a, VectorI b, VectorI c)
+            public TriangleI(Vector2 a, Vector2 b, Vector2 c)
             {
                 _a = a;
                 _b = b;
                 _c = c;
             }
 
-            public Orientation OrientatePoint(VectorI p)
+            public Orientation OrientatePoint(Vector2 p)
             {
-                var o1 = p.CheckOrientation(_a, _b);
-                var o2 = p.CheckOrientation(_b, _c);
-                var o3 = p.CheckOrientation(_c, _a);
+                var o1 = Vec.CheckOrientation(p,_a, _b);
+                var o2 = Vec.CheckOrientation(p,_b, _c);
+                var o3 = Vec.CheckOrientation(p,_c, _a);;
 
                 if (o1 == o2 && o2 == o3 && (o3 == Orientation.RIGHT || o3 == Orientation.LEFT))
                     return Orientation.INSIDE;
-                else if (o1 == Orientation.ON_SEGMENT || o2 == Orientation.ON_SEGMENT || o3 == Orientation.ON_SEGMENT)
+                if (o1 == Orientation.ON_SEGMENT || o2 == Orientation.ON_SEGMENT || o3 == Orientation.ON_SEGMENT)
                     return Orientation.BORDER;
 
                 return Orientation.OUTSIDE;
@@ -458,42 +418,107 @@ namespace Coursera
 
     public struct RayI
     {
-        public VectorI Point { get; }
-        public VectorI Dir { get; }
+        public Vector2 Point { get; }
+        public Vector2 Dir { get; }
 
-        public RayI(VectorI point, VectorI dir)
+        public RayI(Vector2 point, Vector2 dir)
         {
             Point = point;
             Dir = dir;
         }
 
 
-        public bool RayWithSegment(SegmentI seg, out VectorI intersection)
+        public bool RayWithSegment(SegmentI seg, out Vector2? intersection)
         {
-            VectorI segDir = seg.Dir;
-            double det = Dir.X * -segDir.Y + Dir.Y * segDir.X;
+            Vector2 segDir = seg.Dir;
+            float det = Dir.X * -segDir.Y + Dir.Y * segDir.X;
 
             if (Math.Abs(det) > float.Epsilon)
             {
-                double left = ((seg.A.X - Point.X) * -segDir.Y +
+                float left = ((seg.A.X - Point.X) * -segDir.Y +
                                (seg.A.Y - Point.Y) * segDir.X) / det;
-                double right = ((Point.X - seg.A.X) * -Dir.Y +
+                float right = ((Point.X - seg.A.X) * -Dir.Y +
                                 (Point.Y - seg.A.Y) * Dir.X) / -det;
 
                 if (left >= 0.0 && right >= 0.0 && right <= 1.0)
                 {
-                    intersection = VectorI.Mid(Point, Point + Dir, left);
+                    intersection = Vec.Mid(Point, Point + Dir, left);
                     return true;
                 }
 
-                intersection = VectorI.NaN;
+                intersection = null;
                 return false;
             }
 
-            intersection = VectorI.NaN;
+            intersection = null;
             return false;
         }
     }
-    #endregion
 
+    public static class Vec
+    {
+        public static Orientation CheckOrientation(Vector2 q, Vector2 a, Vector2 b)
+        {
+            var val = (b.Y - q.Y) * (a.X - b.X) - (b.X - q.X) * (a.Y - b.Y);
+
+            if (Math.Abs(val) < double.Epsilon)
+            {
+                var minx = Math.Min(b.X, a.X);
+                var maxx = Math.Max(b.X, a.X);
+                var miny = Math.Min(b.Y, a.Y);
+                var maxy = Math.Max(b.Y, a.Y);
+
+                if (q.X >= minx && q.X <= maxx && q.Y >= miny && q.Y <= maxy)
+                    return Orientation.ON_SEGMENT;
+                return Orientation.ONLINE;
+            }
+
+            return val < 0 ? Orientation.RIGHT : Orientation.LEFT;
+        }
+
+        public static Vector2 Mid(Vector2 v0, Vector2 v1, float factor)
+        {
+            return v0 * (1f - factor) + v1 * factor;
+        }
+
+        public static double Angle2X(Vector2 v)
+        {
+            return Math.Atan2(v.Y, v.X);
+        }
+
+        public static double AngleSigned(Vector2 v1, Vector2 v2)
+        {
+            double num = Math.Acos(AngleCos(v1, v2));
+            if (-v1.Y * v2.X + v1.X * v2.Y < 0.0)
+                num = -num;
+            return num;
+        }
+
+        public static double AngleCos(Vector2 v1, Vector2 v2)
+        {
+            double num = (v1.X * v2.X + v1.Y * v2.Y) / Math.Sqrt((v1.X * v1.X + v1.Y * v1.Y) * (v2.X * v2.X + v2.Y * v2.Y));
+            if (num < -1.0)
+                return -1.0;
+            if (num > 1.0)
+                return 1.0;
+            return num;
+        }
+
+        public static double Angle0To2Pi(Vector2 v1, Vector2 v2)
+        {
+            double num = AngleShortest(v1, v2);
+            if (-v1.Y * v2.X + v1.X * v2.Y < 0.0)
+                num = 2.0 * Math.PI - num;
+            return num;
+        }
+
+        public static double AngleShortest(Vector2 v1, Vector2 v2)
+        {
+            return Math.Acos(AngleCos(v1, v2));
+        }
+
+
+    }
+
+    #endregion
 }

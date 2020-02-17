@@ -1,4 +1,6 @@
-﻿namespace Coursera
+﻿using System.Numerics;
+
+namespace Coursera
 {
     public class PointsAndVector1_1 : IProcessTask
     {
@@ -10,14 +12,14 @@
             var bx = segment[2];
             var by = segment[3];
 
-            return new SegmentI(new VectorI(ax, ay), new VectorI(bx, by));
+            return new SegmentI(new Vector2(ax, ay), new Vector2(bx, by));
         }
 
-        private VectorI ReadVector(string vector)
+        private Vector2 ReadVector(string vector)
         {
             var vec = Parse.ParseIntArrayString(vector, 2);
 
-            return new VectorI(vec[0], vec[1]);
+            return new Vector2(vec[0], vec[1]);
         }
 
         private int ReadSegmentsCount(string segCountStr)
@@ -34,7 +36,7 @@
             for (int i = 0; i < segCount; i++)
             {
                 var p = ReadVector(stdIn[i + 2]);
-                arr[i] = Parse.ParseOrientation(p.CheckOrientation(segment.A, segment.B));
+                arr[i] = Parse.ParseOrientation(Vec.CheckOrientation(p,segment.A, segment.B));
             }
 
             return arr;

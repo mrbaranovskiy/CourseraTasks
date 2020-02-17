@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Coursera
 {
@@ -7,14 +8,14 @@ namespace Coursera
         private Polygon2d ReadPolygon(string pl, int count)
         {
             var arr = Parse.ParseIntArrayString(pl, count * 2);
-            var vertices = new List<VectorI>();
+            var vertices = new List<Vector2>();
 
             for (int i = 0; i < arr.Length; i += 2)
             {
                 var x = arr[i];
                 var y = arr[i + 1];
 
-                vertices.Add(new VectorI(x, y));
+                vertices.Add(new Vector2(x, y));
             }
 
             return new Polygon2d(vertices);
