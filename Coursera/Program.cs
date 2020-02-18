@@ -10,7 +10,8 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            //var a = Vec.AngleSigned(new Vector2(3, 3), new Vector2(4, 3));
+            var a = Vec.SignedAround(new Vector2(1, 0), new Vector2(0, 1), new Vector2(0,0));
+            var b = Vec.AngleSigned(new Vector2(1, 0), new Vector2(0, 1));
             var list = new List<string>();
             string input = null;
 
@@ -82,7 +83,10 @@ namespace Coursera
 
 
             result[0] = poly.Count.ToString();
-            var hull = poly.ConvexHull();
+            var hull = poly.ConvexHull().AsArray(new OriginComparer());
+
+            Array.Sort(hull, new PolarComparer(hull[0]));
+            
             //result[1] = poly.ConvexHull().;
 
             return null;
@@ -109,12 +113,26 @@ namespace Coursera
         }
 
 
+        public Vector2[] AsArray(IComparer<Vector2> comparer = null)
+        {
+            if(comparer == null)
+                return _lst.ToArray();
+
+            var arr = _lst.ToArray();
+            Array.Sort(arr, comparer);
+
+            return arr;
+        }
+
         public Polygon2d ConvexHull()
         {
             if (_points.Count < 3)
                 return new Polygon2d(_points);
             //check count
-            var ordered = _points.OrderBy(n => n).ToArray();
+
+            var ordered = _points.ToArray();
+            Array.Sort(ordered, new OriginComparer());
+            
             var lu = new List<Vector2> {ordered[0], ordered[1]};
 
 
@@ -476,12 +494,22 @@ namespace Coursera
             return val < 0 ? Orientation.RIGHT : Orientation.LEFT;
         }
 
+        public static double SignedAround(Vector2 a, Vector2 b, Vector2 around)
+        {
+            var ax = -around.X + a.X;
+            var bx = -around.X + b.X;
+            var ay = -around.Y + a.Y;
+            var by = -around.Y + b.Y;
+
+            return AngleSigned(new Vector2(ax, ay), new Vector2(bx, by));
+        }
+
         public static Vector2 Mid(Vector2 v0, Vector2 v1, float factor)
         {
             return v0 * (1f - factor) + v1 * factor;
         }
 
-        public static double Angle2X(Vector2 v)
+        public static double AngleToX(Vector2 v)
         {
             return Math.Atan2(v.Y, v.X);
         }
@@ -512,12 +540,45 @@ namespace Coursera
             return num;
         }
 
-        public static double AngleShortest(Vector2 v1, Vector2 v2)
+        public static double AngleShortest(Vector2 v1, Vector2 v2) => Math.Acos(AngleCos(v1, v2));
+    }
+    
+    public class OriginComparer : IComparer<Vector2>
+    {
+        public int Compare(Vector2 x, Vector2 y)
         {
-            return Math.Acos(AngleCos(v1, v2));
+            if (x.X > y.X)
+                return 1;
+            if (Math.Abs(x.X - y.X) < Double.Epsilon)
+            {
+                if (x.Y > y.Y)
+                    return 1;
+                if (Math.Abs(x.Y - y.Y) < Double.Epsilon)
+                    return 0;
+            }
+            return -1;
         }
+    }
 
+    public class PolarComparer : IComparer<Vector2>
+    {
+        private readonly Vector2 _center;
 
+        public PolarComparer(Vector2 center)
+        {
+            _center = center;
+        }
+        public int Compare(Vector2 x, Vector2 y)
+        {
+            var a = Vec.SignedAround(x, Vector2.UnitX, _center);
+            var b = Vec.SignedAround(y, Vector2.UnitX, _center);
+
+            if (a > b)
+                return 1;
+            if (Math.Abs(a - b) < Double.Epsilon)
+                return 0;
+            return -1;
+        }
     }
 
     #endregion
