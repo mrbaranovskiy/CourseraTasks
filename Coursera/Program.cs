@@ -9,10 +9,12 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            Segment2d seg = new Segment2d(new Vector2d(3,1), new Vector2d(0,0));
-            Segment2d seg2 = new Segment2d(new Vector2d(4,0), new Vector2d(3, 1) );
+            Segment2d seg = new Segment2d(new Vector2d(0,0), new Vector2d(1,0));
+            Segment2d seg2 = new Segment2d(new Vector2d(1,0), new Vector2d(2, 0) );
 
-            var intersection = seg.Intersection(seg2);
+            Vector2d vec;
+            var intersection = seg.Intersection(seg2, out vec);
+
 
             var list = new List<string>();
             string input = null;
@@ -381,6 +383,7 @@ namespace Coursera
 
             var demon = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
 
+
             if (Math.Abs(demon) > float.Epsilon)
             {
                 var t =   ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
@@ -389,7 +392,7 @@ namespace Coursera
                 var u = ((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3))
                         / -demon;
 
-                if (Vec.InOpenRange<float>(t, 0, 1) && Vec.InOpenRange<float>(u, 0, 1))
+                if (Vec.InOpenRange(t, 0, 1) && Vec.InOpenRange(u, 0, 1))
                 {
                     intersection = new Vector2d(
                         x1 + (t * (x2 - x1)),
@@ -405,7 +408,7 @@ namespace Coursera
                 var o2 = Vec.CheckOrientation(A, B, segment.B);
 
                 if ((o1 == Orientation.ON_SEGMENT || o1 == Orientation.ONLINE)
-                    && (o2 == Orientation.ON_SEGMENT || o2 == Orientation.ONLINE))
+                    && (o2 == Orientation.ON_SEGMENT || o2 == Orientation.ONLINE) && o1 != o2)
                 {
                     intersection = Vector2d.NaN;
                     return true;
