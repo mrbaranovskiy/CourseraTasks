@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coursera", "Coursera\Coursera.csproj", "{B38783A9-13B0-4699-B83F-2565C200ACAE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Performance", "Performance\Performance.csproj", "{19DBE675-EEC7-43DF-9260-504210FA44DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B38783A9-13B0-4699-B83F-2565C200ACAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19DBE675-EEC7-43DF-9260-504210FA44DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19DBE675-EEC7-43DF-9260-504210FA44DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19DBE675-EEC7-43DF-9260-504210FA44DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19DBE675-EEC7-43DF-9260-504210FA44DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

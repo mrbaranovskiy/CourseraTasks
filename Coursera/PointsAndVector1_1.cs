@@ -4,7 +4,7 @@ namespace Coursera
 {
     public class PointsAndVector1_1 : IProcessTask
     {
-        private SegmentI ReadSegment(string segStr)
+        private Segment2d ReadSegment(string segStr)
         {
             var segment = Parse.ParseIntArrayString(segStr, 4);
             var ax = segment[0];
@@ -12,14 +12,14 @@ namespace Coursera
             var bx = segment[2];
             var by = segment[3];
 
-            return new SegmentI(new Vector2(ax, ay), new Vector2(bx, by));
+            return new Segment2d(new Vector2d(ax, ay), new Vector2d(bx, by));
         }
 
-        private Vector2 ReadVector(string vector)
+        private Vector2d ReadVector(string vector)
         {
             var vec = Parse.ParseIntArrayString(vector, 2);
 
-            return new Vector2(vec[0], vec[1]);
+            return new Vector2d(vec[0], vec[1]);
         }
 
         private int ReadSegmentsCount(string segCountStr)

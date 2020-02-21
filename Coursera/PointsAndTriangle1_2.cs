@@ -4,15 +4,15 @@ namespace Coursera
 {
     public class PointsAndTriangle1_2 : IProcessTask
     {
-        private SegmentI.TriangleI ReadTriangle(string str)
+        private TriangleI ReadTriangle(string str)
         {
             var tr = Parse.ParseIntArrayString(str, 6);
 
-            var a = new Vector2(tr[0], tr[1]);
-            var b = new Vector2(tr[2], tr[3]);
-            var c = new Vector2(tr[4], tr[5]);
+            var a = new Vector2d(tr[0], tr[1]);
+            var b = new Vector2d(tr[2], tr[3]);
+            var c = new Vector2d(tr[4], tr[5]);
 
-            return new SegmentI.TriangleI(a, b, c);
+            return new TriangleI(a, b, c);
         }
 
         public string[] ProcessTask(string[] stdIn)
