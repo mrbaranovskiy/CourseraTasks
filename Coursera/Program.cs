@@ -9,11 +9,12 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            Segment2d seg = new Segment2d(new Vector2d(0,0), new Vector2d(1,0));
-            Segment2d seg2 = new Segment2d(new Vector2d(1,0), new Vector2d(2, 0) );
+//            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(5,0));
+//            Segment2d seg2 = new Segment2d(new Vector2d(1,0), new Vector2d(2, 0) );
+//
+//            Vector2d vec;
+//            var intersection = seg.Intersection(seg2, out vec);
 
-            Vector2d vec;
-            var intersection = seg.Intersection(seg2, out vec);
 
 
             var list = new List<string>();
@@ -27,7 +28,7 @@ namespace Coursera
             if (!list.Any())
                 Console.Error.WriteLine("CMD LINE ERROR!!!");
             //
-            IProcessTask task1_1 = new GrahamsAlgo2_1();
+            IProcessTask task1_1 = new SegmentsIndersection_3_1();
             var result = task1_1.ProcessTask(list.ToArray());
 
             Output(result);
@@ -46,14 +47,36 @@ namespace Coursera
         {
             var a = Parse.ParseIntCoordinates(stdIn[0], 2);
             var b = Parse.ParseIntCoordinates(stdIn[1], 2);
-            var countI = Parse.ParseCount(stdIn[2]);
+
+            var results = new string[1];
 
             var ab = new Segment2d(a[0], a[1]);
-            var cd = new Segment2d(a[0], a[1]);
+            var cd = new Segment2d(b[0], b[1]);
+
+            Vector2d inter;
+            var result = ab.Intersection(cd, out inter);
+
+            if (result)
+            {
+                if (Vector2d.IsNaN(inter))
+                    results[0] = "A common segment of non-zero length.";
+                else
+                    results[0] = $"The intersection point is ({inter.X}, {inter.Y}).";
+            }
+            else
+            {
+                if (!Vector2d.IsNaN(inter))
+                {
+                    results[0] = "A common segment of non-zero length.";
+                }
+                else
+                {
+                    results[0] = "No common points.";
+                }
+            }
 
 
-            var results = new string[countI];
-            return null;
+            return results;
         }
     }
 
@@ -381,16 +404,12 @@ namespace Coursera
             var x3 = segment.A.X; var y3 = segment.A.Y;
             var x4 = segment.B.X; var y4 = segment.B.Y;
 
-            var demon = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
+            var denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
-
-            if (Math.Abs(demon) > float.Epsilon)
+            if (Math.Abs(denom) > float.Epsilon)
             {
-                var t =   ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-                          / demon;
-
-                var u = ((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3))
-                        / -demon;
+                var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+                var u = ((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / -denom;
 
                 if (Vec.InOpenRange(t, 0, 1) && Vec.InOpenRange(u, 0, 1))
                 {
@@ -404,15 +423,47 @@ namespace Coursera
             }
             else
             {
-                var o1 = Vec.CheckOrientation(A, B, segment.A);
-                var o2 = Vec.CheckOrientation(A, B, segment.B);
+                var o1 = Vec.CheckOrientation(segment.A, A, B);
+                var o2 = Vec.CheckOrientation(segment.B, A, B);
+                var o3 = Vec.CheckOrientation(A, segment.A, segment.B);
+                var o4 = Vec.CheckOrientation(B, segment.A, segment.B);
 
-                if ((o1 == Orientation.ON_SEGMENT || o1 == Orientation.ONLINE)
-                    && (o2 == Orientation.ON_SEGMENT || o2 == Orientation.ONLINE) && o1 != o2)
+                var or = new[] {o1, o2, o3, o4};
+
+                if (o1 == o2 && o2 == o3 & o3 == o4 && o4 == Orientation.ONLINE)
+                {
+                    intersection = Vector2d.NaN;
+                    return false;
+                }
+
+                if (or.Any(n => n == Orientation.LEFT || n == Orientation.RIGHT))
+                {
+                    intersection = Vector2d.NaN;
+                    return false;
+                }
+
+                if (or.Count(n => n == Orientation.ON_SEGMENT) > 2)
                 {
                     intersection = Vector2d.NaN;
                     return true;
                 }
+
+                Vector2d[] arr = {A, B, segment.A, segment.B};
+                Array.Sort(arr, new OriginComparer());
+
+                for (int i = 0; i < arr.Length - 1; i++)
+                {
+                    var dist = arr[i].SqrDist(arr[i + 1]);
+
+                    if (Math.Abs(dist) < float.Epsilon)
+                    {
+                        intersection = arr[i];
+                        return true;
+                    }
+                }
+
+                intersection = Vector2d.NaN;
+                return true;
             }
 
             intersection = Vector2d.NaN;
@@ -492,6 +543,11 @@ namespace Coursera
 
     public static class Vec
     {
+
+        public static float Sqr(float value)
+        {
+            return value * value;
+        }
 
         public static bool InOpenRange<T>(T num, T lower, T upper) where T
             : IComparable
@@ -624,12 +680,22 @@ namespace Coursera
             return $"{X} {Y}";
         }
 
+        public double Dist(Vector2d v)
+        {
+            return Math.Sqrt(Vec.Sqr(X - v.X) + Vec.Sqr(Y - v.Y));
+        }
+
+        public double SqrDist(Vector2d v)
+        {
+            return Vec.Sqr(this.X - v.X) + Vec.Sqr(this.Y - v.Y);
+        }
+
         public float X { get; }
         public float Y { get; }
         public static Vector2d NaN => new Vector2d(float.NaN, float.NaN);
         public static Vector2d UnitX => new Vector2d(1,0);
 
-        public static bool IsNan(Vector2d vec)
+        public static bool IsNaN(Vector2d vec)
         {
             return float.IsNaN(vec.X) || float.IsNaN(vec.Y);
         }
