@@ -42,8 +42,39 @@ namespace Coursera
                 Console.Out.WriteLine(result);
         }
     }
+    
+    public class PolygonsIntersection_3_2 : IProcessTask
+    {
+        public string[] ProcessTask(string[] stdIn)
+        {
+            var pna = Parse.ParseCount(stdIn[0]);
+            var verticesA = Parse.ParseIntCoordinates(stdIn[1], pna);
+            var pnb = Parse.ParseCount(stdIn[2]);
+            var verticesB = Parse.ParseIntCoordinates(stdIn[3], pnb);
+            
+            var polyginA = new Polygon2d(verticesA);
+            var polyginB = new Polygon2d(verticesB);
 
-    public class PolygonsIntersection : IProcessTask
+            var arr = polyginA.Intersect(polyginB).ToArray();
+
+            //var arr = intersection.ToArray();
+            Array.Sort(arr, new OriginComparer());
+            Array.Sort(arr, new PolarComparer(arr[0]));
+
+            //10 4
+            //10 6
+            //6 10
+            //4 10
+            //0 6
+            //0 4
+            //4 0
+            //6 0
+            return null;
+        }
+    }
+
+
+    public class SegmentsIndersection_3_1 : IProcessTask
     {
         public string[] ProcessTask(string[] stdIn)
         {
