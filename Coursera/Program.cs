@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Xml;
 
 namespace Coursera
 {
@@ -9,11 +11,11 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-//            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(5,0));
-//            Segment2d seg2 = new Segment2d(new Vector2d(1,0), new Vector2d(2, 0) );
-//
-//            Vector2d vec;
-//            var intersection = seg.Intersection(seg2, out vec);
+            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(5,0));
+            Segment2d seg2 = new Segment2d(new Vector2d(-5,0), new Vector2d(5, 0) );
+
+            Vector2d vec;
+            var intersection = seg.Intersection(seg2, out vec);
 
 
 
@@ -28,7 +30,7 @@ namespace Coursera
             if (!list.Any())
                 Console.Error.WriteLine("CMD LINE ERROR!!!");
             //
-            IProcessTask task1_1 = new SegmentsIndersection_3_1();
+            IProcessTask task1_1 = new SegmentsIndersection31();
             var result = task1_1.ProcessTask(list.ToArray());
 
             Output(result);
@@ -41,42 +43,11 @@ namespace Coursera
         }
     }
 
-    public class SegmentsIndersection_3_1 : IProcessTask
+    public class PolygonsIntersection : IProcessTask
     {
         public string[] ProcessTask(string[] stdIn)
         {
-            var a = Parse.ParseIntCoordinates(stdIn[0], 2);
-            var b = Parse.ParseIntCoordinates(stdIn[1], 2);
-
-            var results = new string[1];
-
-            var ab = new Segment2d(a[0], a[1]);
-            var cd = new Segment2d(b[0], b[1]);
-
-            Vector2d inter;
-            var result = ab.Intersection(cd, out inter);
-
-            if (result)
-            {
-                if (Vector2d.IsNaN(inter))
-                    results[0] = "A common segment of non-zero length.";
-                else
-                    results[0] = $"The intersection point is ({inter.X}, {inter.Y}).";
-            }
-            else
-            {
-                if (!Vector2d.IsNaN(inter))
-                {
-                    results[0] = "A common segment of non-zero length.";
-                }
-                else
-                {
-                    results[0] = "No common points.";
-                }
-            }
-
-
-            return results;
+            throw new NotImplementedException();
         }
     }
 
@@ -116,7 +87,6 @@ namespace Coursera
         {
             if (_points.Count < 3)
                 return new Polygon2d(_points);
-            //check count
 
             var ordered = _points.ToArray();
             Array.Sort(ordered, new OriginComparer());
@@ -236,6 +206,22 @@ namespace Coursera
             }
 
             return result;
+        }
+
+        public static Polygon2d Intersect(Polygon2d current, Polygon2d other)
+        {
+            var hull = new SortedSet<Vector2d>();
+
+            foreach (var currentSegment in current.Segments)
+            {
+                foreach (var otherSegment in other.Segments)
+                {
+                    Vector2d inter;
+                    currentSegment.Intersection(otherSegment, out inter);
+                }
+            }
+
+            return new Polygon2d();
         }
 
 
@@ -392,12 +378,16 @@ namespace Coursera
             B = b;
         }
 
+        public static Segment2d NaN = new Segment2d(Vector2d.NaN, Vector2d.NaN);
+
+        public bool IsNaN => Vector2d.IsNaN(A) || Vector2d.IsNaN(B);
+
         public Vector2d Dir => B - A;
 
         public Vector2d A { get; }
         public Vector2d B { get; }
 
-        public bool Intersection(Segment2d segment, out Vector2d intersection)
+        public bool Intersection(Segment2d segment, out Vector2d intersection, out Segment2d seg)
         {
             var x1 = A.X; var y1 = A.Y;
             var x2 = B.X; var y2 = B.Y;
@@ -418,6 +408,7 @@ namespace Coursera
                         y1 + (t * (y2 - y1))
                     );
 
+                    seg = new Segment2d();
                     return true;
                 }
             }
@@ -429,44 +420,35 @@ namespace Coursera
                 var o4 = Vec.CheckOrientation(B, segment.A, segment.B);
 
                 var or = new[] {o1, o2, o3, o4};
+                var pts = new[] {segment.A, segment.B, A, B};
 
                 if (o1 == o2 && o2 == o3 & o3 == o4 && o4 == Orientation.ONLINE)
                 {
                     intersection = Vector2d.NaN;
+                    seg = NaN;
                     return false;
+                }
+
+                if (o1 == o2 && o2 == o3 & o3 == o4 && o4 == Orientation.ON_SEGMENT)
+                {
+                    intersection = Vector2d.NaN;
+                    seg = segment;
+                    return true;
                 }
 
                 if (or.Any(n => n == Orientation.LEFT || n == Orientation.RIGHT))
                 {
                     intersection = Vector2d.NaN;
+                    seg = NaN;
                     return false;
                 }
 
-                if (or.Count(n => n == Orientation.ON_SEGMENT) > 2)
-                {
-                    intersection = Vector2d.NaN;
-                    return true;
-                }
 
-                Vector2d[] arr = {A, B, segment.A, segment.B};
-                Array.Sort(arr, new OriginComparer());
-
-                for (int i = 0; i < arr.Length - 1; i++)
-                {
-                    var dist = arr[i].SqrDist(arr[i + 1]);
-
-                    if (Math.Abs(dist) < float.Epsilon)
-                    {
-                        intersection = arr[i];
-                        return true;
-                    }
-                }
-
-                intersection = Vector2d.NaN;
+                intersection = Vector2d.NaN; seg = NaN;
                 return true;
             }
 
-            intersection = Vector2d.NaN;
+            intersection = Vector2d.NaN; seg = NaN;
             return false;
 
         }
