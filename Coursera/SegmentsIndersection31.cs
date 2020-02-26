@@ -15,7 +15,8 @@ namespace Coursera
             var cd = new Segment2d(b[0], b[1]);
 
             Vector2d inter;
-            var result = ab.Intersection(cd, out inter);
+            Segment2d output;
+            var result = ab.Intersection(cd, out inter, out output);
 
             if (result)
             {

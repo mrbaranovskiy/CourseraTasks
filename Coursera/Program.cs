@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Xml;
 
 namespace Coursera
@@ -11,13 +14,12 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(5,0));
-            Segment2d seg2 = new Segment2d(new Vector2d(-5,0), new Vector2d(5, 0) );
-
-            Vector2d vec;
-            var intersection = seg.Intersection(seg2, out vec);
-
-
+//            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(0,0));
+//            Segment2d seg2 = new Segment2d(new Vector2d(0,0), new Vector2d(2, 0) );
+//
+//            Segment2d segOut;
+//            Vector2d vec;
+//            var intersection = seg.Intersection(seg2, out vec, out segOut);
 
             var list = new List<string>();
             string input = null;
@@ -30,7 +32,7 @@ namespace Coursera
             if (!list.Any())
                 Console.Error.WriteLine("CMD LINE ERROR!!!");
             //
-            IProcessTask task1_1 = new SegmentsIndersection31();
+            IProcessTask task1_1 = new PolygonsIntersection();
             var result = task1_1.ProcessTask(list.ToArray());
 
             Output(result);
@@ -47,7 +49,19 @@ namespace Coursera
     {
         public string[] ProcessTask(string[] stdIn)
         {
-            throw new NotImplementedException();
+            var c1 = Parse.ParseCount(stdIn[0]);
+            var pts1 = Parse.ParseIntCoordinates(stdIn[1], c1);
+
+            var c2 = Parse.ParseCount(stdIn[2]);
+            var pts2 = Parse.ParseIntCoordinates(stdIn[3], c2);
+
+            var p1 = new Polygon2d(pts1);
+            var p2 = new Polygon2d(pts2);
+
+            var hull = Polygon2d.Intersects(p1, p2);
+
+
+            return null;
         }
     }
 
@@ -92,7 +106,6 @@ namespace Coursera
             Array.Sort(ordered, new OriginComparer());
             
             var lu = new List<Vector2d> {ordered[0], ordered[1]};
-
 
             for (int i = 2; i < ordered.Length; i++)
             {
@@ -208,20 +221,62 @@ namespace Coursera
             return result;
         }
 
-        public static Polygon2d Intersect(Polygon2d current, Polygon2d other)
+        public static Polygon2d Intersects(Polygon2d current, Polygon2d other)
         {
-            var hull = new SortedSet<Vector2d>();
+            var hullPts = new SortedSet<Vector2d>();
 
             foreach (var currentSegment in current.Segments)
             {
                 foreach (var otherSegment in other.Segments)
                 {
                     Vector2d inter;
-                    currentSegment.Intersection(otherSegment, out inter);
+                    Segment2d segment;
+                    var result = currentSegment.Intersection(otherSegment, out inter, out segment);
+
+                    if (result)
+                    {
+                        //If segments intersected on point
+                        if (!Vector2d.IsNaN(inter))
+                            hullPts.Add(inter);
+                        else if(!segment.IsNaN)
+                        {
+                            hullPts.Add(segment.A);
+                            hullPts.Add(segment.B);
+                        }
+                    }
                 }
             }
 
-            return new Polygon2d();
+            foreach (var currentPoint in current._points)
+            {
+                if (PointInPolygon(other._points, currentPoint))
+                    hullPts.Add(currentPoint);
+            }
+
+            foreach (var otherPoint in other._points)
+            {
+                if (PointInPolygon(current._points, otherPoint))
+                    hullPts.Add(otherPoint);
+            }
+
+            //remove degenerated
+            var hull = new Polygon2d(hullPts.ToList()).ConvexHull();
+
+            for (int i = 1; i < hull.Count - 2; i++)
+            {
+                var q = (i + 1) % hull.Count;
+                var p = (q + 1) % hull.Count;
+                var l = (p + 1) % hull.Count;
+
+                var pts = hull._points;
+
+                if (pts[q].OnLine(pts[p], pts[l]))
+                {
+                    hull.Remove(pts[p]);
+                }
+            }
+
+            return hull;
         }
 
 
@@ -404,8 +459,8 @@ namespace Coursera
                 if (Vec.InOpenRange(t, 0, 1) && Vec.InOpenRange(u, 0, 1))
                 {
                     intersection = new Vector2d(
-                        x1 + (t * (x2 - x1)),
-                        y1 + (t * (y2 - y1))
+                        x1 + t * (x2 - x1),
+                        y1 + t * (y2 - y1)
                     );
 
                     seg = new Segment2d();
@@ -414,13 +469,20 @@ namespace Coursera
             }
             else
             {
+                var onSegment = new SortedSet<Vector2d>(new OriginComparer());
+
                 var o1 = Vec.CheckOrientation(segment.A, A, B);
                 var o2 = Vec.CheckOrientation(segment.B, A, B);
                 var o3 = Vec.CheckOrientation(A, segment.A, segment.B);
                 var o4 = Vec.CheckOrientation(B, segment.A, segment.B);
 
+                //shit code
+                if(o1 == Orientation.ON_SEGMENT) onSegment.Add(segment.A);
+                if(o2 == Orientation.ON_SEGMENT) onSegment.Add(segment.B);
+                if(o3 == Orientation.ON_SEGMENT) onSegment.Add(A);
+                if(o4 == Orientation.ON_SEGMENT) onSegment.Add(B);
+
                 var or = new[] {o1, o2, o3, o4};
-                var pts = new[] {segment.A, segment.B, A, B};
 
                 if (o1 == o2 && o2 == o3 & o3 == o4 && o4 == Orientation.ONLINE)
                 {
@@ -444,8 +506,41 @@ namespace Coursera
                 }
 
 
-                intersection = Vector2d.NaN; seg = NaN;
-                return true;
+                if (onSegment.Count == 1)
+                {
+                    intersection = onSegment.First();
+                    seg = NaN;
+                    return true;
+                }
+
+                if (onSegment.Count > 1)
+                {
+                    var arr = onSegment.ToArray();
+                    double minDist = double.MaxValue;
+                    var a = Vector2d.NaN;
+                    var b = Vector2d.NaN;
+
+                    for (int i = 0; i < arr.Length - 1 ; i++)
+                    {
+                        var cur = (i + 1) % onSegment.Count;
+                        var next = (cur + 1) % onSegment.Count;
+
+                        //govno code
+                        var sqrDist = arr[cur].SqrDist(arr[next]);
+
+                        if (sqrDist < minDist)
+                        {
+                            minDist = sqrDist;
+                            a = arr[cur];
+                            b = arr[next];
+                        }
+                    }
+
+                    intersection = Vector2d.NaN;
+                    seg = new Segment2d(a,b);
+                    return true;
+                }
+
             }
 
             intersection = Vector2d.NaN; seg = NaN;
@@ -733,9 +828,14 @@ namespace Coursera
             return ((p.X - X) * (q.Y - Y)) > ((p.Y - Y) * (q.X - X));
         }
 
-        public bool OnLine(Vector2d p, Vector2d q)
+        public bool OnLine(Vector2d q, Vector2d p)
         {
-            return Math.Abs(((p.X - X) * (q.Y - Y)) - ((p.Y - Y) * (q.X - X))) < float.Epsilon;
+            return OnLine(new Vector2d(X, Y), q, p );
+        }
+
+        public static bool OnLine(Vector2d q, Vector2d p, Vector2d l)
+        {
+            return Math.Abs(((p.X - q.X) * (l.Y - q.Y)) - ((p.Y - q.Y) * (l.X - q.X))) < float.Epsilon;
         }
 
         public Orientation CheckLeftRight(Vector2d a, Vector2d b)
