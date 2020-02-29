@@ -5,6 +5,8 @@ using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Remoting.Proxies;
+using System.Security.Policy;
 using System.Threading;
 using System.Xml;
 
@@ -14,7 +16,8 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-//            Segment2d seg = new Segment2d(new Vector2d(-5,0), new Vector2d(0,0));
+            Segment2d seg = new Segment2d(new Vector2d(-5, 0), new Vector2d(0, 0));
+            var sh = seg.GetHashCode();
 //            Segment2d seg2 = new Segment2d(new Vector2d(0,0), new Vector2d(2, 0) );
 //
 //            Segment2d segOut;
@@ -60,7 +63,6 @@ namespace Coursera
 
             var hull = Polygon2d.Intersects(p1, p2);
 
-
             return null;
         }
     }
@@ -88,7 +90,7 @@ namespace Coursera
 
         public Vector2d[] AsArray(IComparer<Vector2d> comparer = null)
         {
-            if(comparer == null)
+            if (comparer == null)
                 return _lst.ToArray();
 
             var arr = _lst.ToArray();
@@ -104,7 +106,7 @@ namespace Coursera
 
             var ordered = _points.ToArray();
             Array.Sort(ordered, new OriginComparer());
-            
+
             var lu = new List<Vector2d> {ordered[0], ordered[1]};
 
             for (int i = 2; i < ordered.Length; i++)
@@ -113,7 +115,8 @@ namespace Coursera
                 lu.Add(p);
 
                 while (lu.Count > 2
-                       && Vec.CheckOrientation(lu[lu.Count - 3],lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                       && Vec.CheckOrientation(lu[lu.Count - 3], lu[lu.Count - 2], lu[lu.Count - 1]) !=
+                       Orientation.RIGHT)
                     lu.RemoveAt(lu.Count - 2);
             }
 
@@ -125,7 +128,8 @@ namespace Coursera
                 lu.Add(p);
 
                 while (lu.Count > limit
-                       && Vec.CheckOrientation(lu[lu.Count - 3],lu[lu.Count - 2], lu[lu.Count - 1]) != Orientation.RIGHT)
+                       && Vec.CheckOrientation(lu[lu.Count - 3], lu[lu.Count - 2], lu[lu.Count - 1]) !=
+                       Orientation.RIGHT)
                     lu.RemoveAt(lu.Count - 2);
             }
 
@@ -145,14 +149,13 @@ namespace Coursera
 
         public bool IsConvex()
         {
-
             if (_points.Count < 4)
                 return true;
 
             bool sign = false;
             int n = _points.Count;
 
-            for(int i = 0; i < n; i++)
+            for (int i = 0; i < n; i++)
             {
                 double dx1 = _points[(i + 2) % n].X - _points[(i + 1) % n].X;
                 double dy1 = _points[(i + 2) % n].Y - _points[(i + 1) % n].Y;
@@ -167,7 +170,6 @@ namespace Coursera
             }
 
             return true;
-
         }
 
 
@@ -223,7 +225,7 @@ namespace Coursera
 
         public static Polygon2d Intersects(Polygon2d current, Polygon2d other)
         {
-            var hullPts = new SortedSet<Vector2d>();
+            var hullPts = new SortedSet<Vector2d>(new OriginComparer());
 
             foreach (var currentSegment in current.Segments)
             {
@@ -235,27 +237,33 @@ namespace Coursera
 
                     if (result)
                     {
-                        //If segments intersected on point
-                        if (!Vector2d.IsNaN(inter))
-                            hullPts.Add(inter);
-                        else if(!segment.IsNaN)
+                        if (!segment.IsNaN)
                         {
-                            hullPts.Add(segment.A);
-                            hullPts.Add(segment.B);
+                            //if the length of the intersections is identical to the
+                            //intersected segment - skip it.
+                            if (segment != currentSegment)
+                            {
+                                hullPts.Add(segment.A);
+                                hullPts.Add(segment.B);
+                            }
                         }
+                        else if (!Vector2d.IsNaN(inter) && !hullPts.Contains(inter))
+                            hullPts.Add(inter);
+
+                        //If segments intersected on point
                     }
                 }
             }
 
             foreach (var currentPoint in current._points)
             {
-                if (PointInPolygon(other._points, currentPoint))
+                if (PointInPolygon(other._points, currentPoint) && !hullPts.Contains(currentPoint))
                     hullPts.Add(currentPoint);
             }
 
             foreach (var otherPoint in other._points)
             {
-                if (PointInPolygon(current._points, otherPoint))
+                if (PointInPolygon(current._points, otherPoint) && !hullPts.Contains(otherPoint))
                     hullPts.Add(otherPoint);
             }
 
@@ -269,11 +277,8 @@ namespace Coursera
                 var l = (p + 1) % hull.Count;
 
                 var pts = hull._points;
-
                 if (pts[q].OnLine(pts[p], pts[l]))
-                {
                     hull.Remove(pts[p]);
-                }
             }
 
             return hull;
@@ -283,7 +288,7 @@ namespace Coursera
         public Orientation CheckPointOrientation(Vector2d pt)
         {
             var segments = Segments.ToArray();
-            var onBorder = segments.Any(n => Vec.CheckOrientation(pt,n.A, n.B) == Orientation.ON_SEGMENT);
+            var onBorder = segments.Any(n => Vec.CheckOrientation(pt, n.A, n.B) == Orientation.ON_SEGMENT);
 
             if (onBorder)
                 return Orientation.BORDER;
@@ -425,7 +430,7 @@ namespace Coursera
             => Parse.ParseIntArrayString(segCountStr, 1)[0];
     }
 
-    public struct Segment2d
+    public struct Segment2d : IEqualityComparer<Segment2d>
     {
         public Segment2d(Vector2d a, Vector2d b)
         {
@@ -433,7 +438,12 @@ namespace Coursera
             B = b;
         }
 
-        public static Segment2d NaN = new Segment2d(Vector2d.NaN, Vector2d.NaN);
+        public Segment2d SwapToY()
+        {
+            return A.Y < B.Y ? new Segment2d(B, A) : this;
+        }
+
+        private static Segment2d NaN = new Segment2d(Vector2d.NaN, Vector2d.NaN);
 
         public bool IsNaN => Vector2d.IsNaN(A) || Vector2d.IsNaN(B);
 
@@ -444,10 +454,14 @@ namespace Coursera
 
         public bool Intersection(Segment2d segment, out Vector2d intersection, out Segment2d seg)
         {
-            var x1 = A.X; var y1 = A.Y;
-            var x2 = B.X; var y2 = B.Y;
-            var x3 = segment.A.X; var y3 = segment.A.Y;
-            var x4 = segment.B.X; var y4 = segment.B.Y;
+            var x1 = A.X;
+            var y1 = A.Y;
+            var x2 = B.X;
+            var y2 = B.Y;
+            var x3 = segment.A.X;
+            var y3 = segment.A.Y;
+            var x4 = segment.B.X;
+            var y4 = segment.B.Y;
 
             var denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
@@ -463,7 +477,7 @@ namespace Coursera
                         y1 + t * (y2 - y1)
                     );
 
-                    seg = new Segment2d();
+                    seg = NaN;
                     return true;
                 }
             }
@@ -477,10 +491,10 @@ namespace Coursera
                 var o4 = Vec.CheckOrientation(B, segment.A, segment.B);
 
                 //shit code
-                if(o1 == Orientation.ON_SEGMENT) onSegment.Add(segment.A);
-                if(o2 == Orientation.ON_SEGMENT) onSegment.Add(segment.B);
-                if(o3 == Orientation.ON_SEGMENT) onSegment.Add(A);
-                if(o4 == Orientation.ON_SEGMENT) onSegment.Add(B);
+                if (o1 == Orientation.ON_SEGMENT) onSegment.Add(segment.A);
+                if (o2 == Orientation.ON_SEGMENT) onSegment.Add(segment.B);
+                if (o3 == Orientation.ON_SEGMENT) onSegment.Add(A);
+                if (o4 == Orientation.ON_SEGMENT) onSegment.Add(B);
 
                 var or = new[] {o1, o2, o3, o4};
 
@@ -516,11 +530,11 @@ namespace Coursera
                 if (onSegment.Count > 1)
                 {
                     var arr = onSegment.ToArray();
-                    double minDist = double.MaxValue;
+                    double minDist = double.MaxValue; // don't need
                     var a = Vector2d.NaN;
                     var b = Vector2d.NaN;
 
-                    for (int i = 0; i < arr.Length - 1 ; i++)
+                    for (int i = 0; i < arr.Length - 1; i++)
                     {
                         var cur = (i + 1) % onSegment.Count;
                         var next = (cur + 1) % onSegment.Count;
@@ -537,15 +551,43 @@ namespace Coursera
                     }
 
                     intersection = Vector2d.NaN;
-                    seg = new Segment2d(a,b);
+                    seg = new Segment2d(a, b);
                     return true;
                 }
-
             }
 
-            intersection = Vector2d.NaN; seg = NaN;
+            intersection = Vector2d.NaN;
+            seg = NaN;
             return false;
+        }
 
+        public static bool operator ==(Segment2d x, Segment2d y)
+        {
+            if (x.IsNaN || y.IsNaN) return false;
+            return x.A == y.A && x.B == y.B || x.A == y.B && x.B == y.A;
+        }
+
+        public static bool operator !=(Segment2d left, Segment2d right)
+        {
+            return !(left == right);
+        }
+
+        public bool Equals(Segment2d x, Segment2d y)
+        {
+            if (x.Equals(y)) return true;
+            if (x.IsNaN || y.IsNaN) return false;
+
+            return x == y;
+        }
+
+        public int GetHashCode(Segment2d obj)
+        {
+            var a = obj.A.X.GetHashCode();
+            var b = obj.A.X.GetHashCode();
+            var c = obj.A.X.GetHashCode();
+            var d = obj.A.X.GetHashCode();
+
+            return unchecked(a * b * c * d);
         }
     }
 
@@ -564,9 +606,10 @@ namespace Coursera
 
         public Orientation OrientatePoint(Vector2d p)
         {
-            var o1 = Vec.CheckOrientation(p,_a, _b);
-            var o2 = Vec.CheckOrientation(p,_b, _c);
-            var o3 = Vec.CheckOrientation(p,_c, _a);;
+            var o1 = Vec.CheckOrientation(p, _a, _b);
+            var o2 = Vec.CheckOrientation(p, _b, _c);
+            var o3 = Vec.CheckOrientation(p, _c, _a);
+            ;
 
             if (o1 == o2 && o2 == o3 && (o3 == Orientation.RIGHT || o3 == Orientation.LEFT))
                 return Orientation.INSIDE;
@@ -575,8 +618,6 @@ namespace Coursera
 
             return Orientation.OUTSIDE;
         }
-
-
     }
 
     public struct RayI
@@ -594,13 +635,13 @@ namespace Coursera
         public bool RayWithSegment(Segment2d seg, out Vector2d? intersection)
         {
             Vector2d segDir = seg.Dir;
-            float det = Dir.X * -segDir.Y + Dir.Y * segDir.X;
+            double det = Dir.X * -segDir.Y + Dir.Y * segDir.X;
 
-            if (Math.Abs(det) > float.Epsilon)
+            if (Math.Abs(det) > double.Epsilon)
             {
-                float left = ((seg.A.X - Point.X) * -segDir.Y +
+                double left = ((seg.A.X - Point.X) * -segDir.Y +
                                (seg.A.Y - Point.Y) * segDir.X) / det;
-                float right = ((Point.X - seg.A.X) * -Dir.Y +
+                double right = ((Point.X - seg.A.X) * -Dir.Y +
                                 (Point.Y - seg.A.Y) * Dir.X) / -det;
 
                 if (left >= 0.0 && right >= 0.0 && right <= 1.0)
@@ -620,8 +661,87 @@ namespace Coursera
 
     public static class Vec
     {
+        public struct EventPoint : IEquatable<EventPoint>
+        {
+            internal Vector2d Pt { get; }
+            internal int Seg { get; set; }
+            internal bool IsStart { get; }
+            internal int SegInitial { get; }
 
-        public static float Sqr(float value)
+            public EventPoint(Vector2d pt, int seg, bool isStart)
+            {
+                Pt = pt;
+                Seg = seg;
+                SegInitial = seg;
+                IsStart = isStart;
+            }
+
+            public bool Equals(EventPoint other)
+            {
+                return Pt.Equals(other.Pt);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                return obj is EventPoint && Equals((EventPoint) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = Pt.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Seg;
+                    hashCode = (hashCode * 397) ^ IsStart.GetHashCode();
+                    return hashCode;
+                }
+            }
+        }
+
+        public IEnumerable<KeyValuePair<int, int>> SweepLine(IEnumerable<Segment2d> arr)
+        {
+            var segments = arr.ToArray();
+            var eventPoints = new SortedSet<EventPoint>(new EventPointComparer());
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+                eventPoints.Add(new EventPoint(segments[i].A, i, true));
+                eventPoints.Add(new EventPoint(segments[i].B, i, false));
+            }
+
+            var status = new List<EventPoint>();
+
+            foreach (var eventPoint in eventPoints)
+            {
+                if (eventPoint.IsStart)
+                {
+                    var lastIdx = status.FindLastIndex((p)=> p.Seg < eventPoint.Seg);
+                    if(lastIdx == -1)
+                        status.Add(eventPoint);
+                    else status.Insert(lastIdx, eventPoint);
+                    //compare with next
+                    var seg = segments[status[lastIdx + 1].Seg];
+                    Vector2d intersection;
+                    Segment2d segmentInter;
+
+                    if (status.Count < lastIdx &&
+                        segments[eventPoint.Seg].Intersection(seg, out intersection, out segmentInter))
+                    {
+                        yield return new KeyValuePair<int, int>(eventPoint.SegInitial, status[lastIdx + 1].Seg);
+
+                    }
+                    //compare with prev
+                }
+                else
+                {
+
+                }
+
+            }
+        }
+
+        public static double Sqr(double value)
         {
             return value * value;
         }
@@ -673,7 +793,7 @@ namespace Coursera
             return AngleSigned(new Vector2d(ax, ay), new Vector2d(bx, by));
         }
 
-        public static Vector2d Mid(Vector2d v0, Vector2d v1, float factor)
+        public static Vector2d Mid(Vector2d v0, Vector2d v1, double factor)
         {
             return v0 * (1f - factor) + v1 * factor;
         }
@@ -693,7 +813,8 @@ namespace Coursera
 
         public static double AngleCos(Vector2d v1, Vector2d v2)
         {
-            double num = (v1.X * v2.X + v1.Y * v2.Y) / Math.Sqrt((v1.X * v1.X + v1.Y * v1.Y) * (v2.X * v2.X + v2.Y * v2.Y));
+            double num = (v1.X * v2.X + v1.Y * v2.Y) /
+                         Math.Sqrt((v1.X * v1.X + v1.Y * v1.Y) * (v2.X * v2.X + v2.Y * v2.Y));
             if (num < -1.0)
                 return -1.0;
             if (num > 1.0)
@@ -711,7 +832,7 @@ namespace Coursera
 
         public static double AngleShortest(Vector2d v1, Vector2d v2) => Math.Acos(AngleCos(v1, v2));
     }
-    
+
     public class OriginComparer : IComparer<Vector2d>
     {
         public int Compare(Vector2d x, Vector2d y)
@@ -725,7 +846,43 @@ namespace Coursera
                 if (Math.Abs(x.Y - y.Y) < Double.Epsilon)
                     return 0;
             }
+
             return -1;
+        }
+    }
+
+    public class SegmentsOriginYComparer : IComparer<Segment2d>
+    {
+        public int Compare(Segment2d a, Segment2d b)
+        {
+            if (a.A.Y > b.A.Y)
+                return 1;
+            return a.A.X < a.B.X ? 1 : -1;
+        }
+    }
+
+    public class EventPointComparer : IComparer<Vec.EventPoint>
+    {
+        private readonly bool _byIndex;
+
+        public EventPointComparer(bool byIndex = false)
+        {
+            _byIndex = byIndex;
+        }
+
+        public int Compare(Vec.EventPoint a, Vec.EventPoint b)
+        {
+            if (_byIndex)
+            {
+                if (a.Seg > b.Seg)
+                    return 1;
+
+                return -1;
+            }
+
+            if (a.Pt.Y > b.Pt.Y)
+                return 1;
+            return a.Pt.X < b.Pt.X ? 1 : -1;
         }
     }
 
@@ -737,6 +894,7 @@ namespace Coursera
         {
             _center = center;
         }
+
         public int Compare(Vector2d x, Vector2d y)
         {
             var a = Vec.SignedAround(x, Vector2d.UnitX, _center);
@@ -750,7 +908,7 @@ namespace Coursera
         }
     }
 
-     public struct Vector2d : IComparable<Vector2d>
+    public struct Vector2d : IComparable<Vector2d>
     {
         public override string ToString()
         {
@@ -767,23 +925,23 @@ namespace Coursera
             return Vec.Sqr(this.X - v.X) + Vec.Sqr(this.Y - v.Y);
         }
 
-        public float X { get; }
-        public float Y { get; }
+        public double X { get; }
+        public double Y { get; }
         public static Vector2d NaN => new Vector2d(float.NaN, float.NaN);
-        public static Vector2d UnitX => new Vector2d(1,0);
+        public static Vector2d UnitX => new Vector2d(1, 0);
 
         public static bool IsNaN(Vector2d vec)
         {
-            return float.IsNaN(vec.X) || float.IsNaN(vec.Y);
+            return double.IsNaN(vec.X) || double.IsNaN(vec.Y);
         }
 
-        public Vector2d(float x, float y)
+        public Vector2d(double x, double y)
         {
             X = x;
             Y = y;
         }
 
-        public static Vector2d Mid(Vector2d v0, Vector2d v1, float factor)
+        public static Vector2d Mid(Vector2d v0, Vector2d v1, double factor)
         {
             return v0 * (1.0f - factor) + v1 * factor;
         }
@@ -795,7 +953,7 @@ namespace Coursera
 
         public static bool operator ==(Vector2d left, Vector2d right)
         {
-            return Math.Abs(left.X - right.X) < double.Epsilon && Math.Abs(left.Y - right.Y) < float.Epsilon;
+            return Math.Abs(left.X - right.X) < double.Epsilon && Math.Abs(left.Y - right.Y) < double.Epsilon;
         }
 
         public static bool operator !=(Vector2d left, Vector2d right)
@@ -813,12 +971,12 @@ namespace Coursera
             return new Vector2d(left.X - right.X, left.Y - right.Y);
         }
 
-        public static Vector2d operator *(Vector2d lef, float factor)
+        public static Vector2d operator *(Vector2d lef, double factor)
         {
             return new Vector2d(lef.X * factor, lef.Y * factor);
         }
 
-        public static Vector2d operator *(float factor, Vector2d rhs)
+        public static Vector2d operator *(double factor, Vector2d rhs)
         {
             return new Vector2d(factor * rhs.X, factor * rhs.Y);
         }
@@ -830,7 +988,7 @@ namespace Coursera
 
         public bool OnLine(Vector2d q, Vector2d p)
         {
-            return OnLine(new Vector2d(X, Y), q, p );
+            return OnLine(new Vector2d(X, Y), q, p);
         }
 
         public static bool OnLine(Vector2d q, Vector2d p, Vector2d l)
