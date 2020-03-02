@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
@@ -631,7 +632,6 @@ namespace Coursera
             Dir = dir;
         }
 
-
         public bool RayWithSegment(Segment2d seg, out Vector2d? intersection)
         {
             Vector2d segDir = seg.Dir;
@@ -661,18 +661,25 @@ namespace Coursera
 
     public static class Vec
     {
+        public class StatusPoint
+        {
+            public int SegmentId { get; set; }
+            public bool InStatus { get; set; }
+            public Segment2d Segment { get; set; }
+        }
+
         public struct EventPoint : IEquatable<EventPoint>
         {
             internal Vector2d Pt { get; }
-            internal int Seg { get; set; }
+            internal int Sega { get; }
+            public int Segb { get; }
             internal bool IsStart { get; }
-            internal int SegInitial { get; }
 
-            public EventPoint(Vector2d pt, int seg, bool isStart)
+            public EventPoint(Vector2d pt, int sega, int segb, bool isStart)
             {
                 Pt = pt;
-                Seg = seg;
-                SegInitial = seg;
+                Sega = sega;
+                Segb = segb;
                 IsStart = isStart;
             }
 
@@ -692,53 +699,87 @@ namespace Coursera
                 unchecked
                 {
                     var hashCode = Pt.GetHashCode();
-                    hashCode = (hashCode * 397) ^ Seg;
+                    hashCode = (hashCode * 397) ^ Sega;
                     hashCode = (hashCode * 397) ^ IsStart.GetHashCode();
                     return hashCode;
                 }
             }
         }
 
+        private StatusPoint Swap(StatusPoint[] arr, int a, int b)
+        {
+            var aLeftr
+        }
+
         public IEnumerable<KeyValuePair<int, int>> SweepLine(IEnumerable<Segment2d> arr)
         {
             var segments = arr.ToArray();
             var eventPoints = new SortedSet<EventPoint>(new EventPointComparer());
+            var status = new List<StatusPoint>();
 
             for (var i = 0; i < segments.Length; i++)
             {
-                eventPoints.Add(new EventPoint(segments[i].A, i, true));
-                eventPoints.Add(new EventPoint(segments[i].B, i, false));
+                status.Add(new StatusPoint(){InStatus = false, SegmentId = i, Segment = segments[i]});
+                eventPoints.Add(new EventPoint(segments[i].A, i, -1, true));
+                eventPoints.Add(new EventPoint(segments[i].B, i, -1, false));
             }
 
-            var status = new List<EventPoint>();
 
-            foreach (var eventPoint in eventPoints)
+            while (eventPoints.Any())
             {
-                if (eventPoint.IsStart)
+                var evt = eventPoints.First();
+                eventPoints.Remove(evt);
+
+                if (!Vector2d.IsNaN(evt.Pt))
                 {
-                    var lastIdx = status.FindLastIndex((p)=> p.Seg < eventPoint.Seg);
-                    if(lastIdx == -1)
-                        status.Add(eventPoint);
-                    else status.Insert(lastIdx, eventPoint);
-                    //compare with next
-                    var seg = segments[status[lastIdx + 1].Seg];
-                    Vector2d intersection;
-                    Segment2d segmentInter;
+                    var sega = evt.Sega;
+                    var segb = evt.Segb;
 
-                    if (status.Count < lastIdx &&
-                        segments[eventPoint.Seg].Intersection(seg, out intersection, out segmentInter))
+                    //slow shit
+                    var aIdx = status.FindIndex(s => s.SegmentId == sega);
+                    var bIdx = status.FindIndex(s => s.SegmentId == segb);
+
+                    //swap
+                    var tempB = status[bIdx];
+                    status[bIdx] = status[aIdx];
+                    status[aIdx] = tempB;
+                }
+
+                if (evt.IsStart)
+                {
+                    var segStartIdx = status.FindIndex(s => s.SegmentId == evt.Sega);
+                    status[segStartIdx].InStatus = true;
+
+                    //check neighbours with true status
+                    //todo: compress the status
+                    for (int i = 0; i < status.Count - 1; i++)
                     {
-                        yield return new KeyValuePair<int, int>(eventPoint.SegInitial, status[lastIdx + 1].Seg);
+                        if (status[i].InStatus && status[i + 1].InStatus)
+                        {
+                            var segA = status[i].Segment;
+                            var segB = status[i + 1].Segment;
+                            Vector2d intersection;
+                            Segment2d segInter;
 
+                            if( segA.Intersection(segB, out intersection, out segInter));
+                            {
+                                var eventPoint = new EventPoint(intersection,
+                                    status[i].SegmentId, status[i + 1].SegmentId, false);
+
+                                eventPoints.Add(eventPoint);
+                            }
+                        }
                     }
-                    //compare with prev
                 }
                 else
                 {
-
+                    //do not remember what is going on here.
+                    var segEndIdx = status.FindIndex(s => s.SegmentId == evt.Sega);
+                    var index = status.FindIndex(s => s.SegmentId == segEndIdx);
+                    status[index].InStatus = false;
                 }
-
             }
+
         }
 
         public static double Sqr(double value)
@@ -874,7 +915,7 @@ namespace Coursera
         {
             if (_byIndex)
             {
-                if (a.Seg > b.Seg)
+                if (a.Sega > b.Sega)
                     return 1;
 
                 return -1;
