@@ -1,15 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
-using System.Drawing.Drawing2D;
-using System.Globalization;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Proxies;
-using System.Security.Policy;
-using System.Threading;
-using System.Xml;
 
 namespace Coursera
 {
@@ -17,13 +9,13 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            Segment2d seg = new Segment2d(new Vector2d(-5, 0), new Vector2d(0, 0));
-            var sh = seg.GetHashCode();
-//            Segment2d seg2 = new Segment2d(new Vector2d(0,0), new Vector2d(2, 0) );
-//
-//            Segment2d segOut;
-//            Vector2d vec;
-//            var intersection = seg.Intersection(seg2, out vec, out segOut);
+            Segment2d seg1 = new Segment2d(new Vector2d(-5, -5), new Vector2d(5, 5));
+            Segment2d seg2 = new Segment2d(new Vector2d(5, 5), new Vector2d(-5, -5));
+
+            var segments = new[] {seg1, seg2};
+
+            var keyValuePairs = Vec.SegmentIntersection(segments).ToArray();
+
 
             var list = new List<string>();
             string input = null;
@@ -668,7 +660,7 @@ namespace Coursera
             public Segment2d Segment { get; set; }
         }
 
-        public struct EventPoint : IEquatable<EventPoint>
+        public class EventPoint : IEquatable<EventPoint>, IComparable<EventPoint>
         {
             internal Vector2d Pt { get; }
             internal int Sega { get; }
@@ -704,14 +696,22 @@ namespace Coursera
                     return hashCode;
                 }
             }
+
+            public int CompareTo(EventPoint other)
+            {
+                if (ReferenceEquals(this, other)) return 0;
+                if (ReferenceEquals(null, other)) return 1;
+                var ptComparison = Pt.CompareTo(other.Pt);
+                if (ptComparison != 0) return ptComparison;
+                var segaComparison = Sega.CompareTo(other.Sega);
+                if (segaComparison != 0) return segaComparison;
+                var segbComparison = Segb.CompareTo(other.Segb);
+                if (segbComparison != 0) return segbComparison;
+                return IsStart.CompareTo(other.IsStart);
+            }
         }
 
-        private StatusPoint Swap(StatusPoint[] arr, int a, int b)
-        {
-            var aLeftr
-        }
-
-        public IEnumerable<KeyValuePair<int, int>> SweepLine(IEnumerable<Segment2d> arr)
+        public static IEnumerable<KeyValuePair<int, int>> SegmentIntersection(IEnumerable<Segment2d> arr)
         {
             var segments = arr.ToArray();
             var eventPoints = new SortedSet<EventPoint>(new EventPointComparer());
@@ -743,6 +743,8 @@ namespace Coursera
                     var tempB = status[bIdx];
                     status[bIdx] = status[aIdx];
                     status[aIdx] = tempB;
+
+                    yield return new KeyValuePair<int, int>(aIdx, bIdx);
                 }
 
                 if (evt.IsStart)
@@ -777,9 +779,28 @@ namespace Coursera
                     var segEndIdx = status.FindIndex(s => s.SegmentId == evt.Sega);
                     var index = status.FindIndex(s => s.SegmentId == segEndIdx);
                     status[index].InStatus = false;
+
+                    //recompute the neighbours
+                    for (int i = 0; i < status.Count - 1; i++)
+                    {
+                        if (status[i].InStatus && status[i + 1].InStatus)
+                        {
+                            var segA = status[i].Segment;
+                            var segB = status[i + 1].Segment;
+                            Vector2d intersection;
+                            Segment2d segInter;
+
+                            if( segA.Intersection(segB, out intersection, out segInter));
+                            {
+                                var eventPoint = new EventPoint(intersection,
+                                    status[i].SegmentId, status[i + 1].SegmentId, false);
+
+                                eventPoints.Add(eventPoint);
+                            }
+                        }
+                    }
                 }
             }
-
         }
 
         public static double Sqr(double value)
@@ -913,17 +934,7 @@ namespace Coursera
 
         public int Compare(Vec.EventPoint a, Vec.EventPoint b)
         {
-            if (_byIndex)
-            {
-                if (a.Sega > b.Sega)
-                    return 1;
-
-                return -1;
-            }
-
-            if (a.Pt.Y > b.Pt.Y)
-                return 1;
-            return a.Pt.X < b.Pt.X ? 1 : -1;
+            return a.CompareTo(b);
         }
     }
 
