@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.Linq;
 
 namespace Coursera
@@ -9,10 +10,12 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            Segment2d seg1 = new Segment2d(new Vector2d(-5, -5), new Vector2d(5, 5));
-            Segment2d seg2 = new Segment2d(new Vector2d(5, 5), new Vector2d(-5, -5));
+            Segment2d seg1 = new Segment2d(new Vector2d(0, 0), new Vector2d(5, 5));
+            Segment2d seg2 = new Segment2d(new Vector2d(0, 0), new Vector2d(5, -5));
+            Segment2d seg3 = new Segment2d(new Vector2d(0, 0), new Vector2d(5, 1));
 
-            var segments = new[] {seg1, seg2};
+
+            var segments = new[] {seg1, seg2, seg3};
 
             var keyValuePairs = Vec.SegmentIntersection(segments).ToArray();
 
@@ -656,28 +659,35 @@ namespace Coursera
         public class StatusPoint
         {
             public int SegmentId { get; set; }
-            public bool InStatus { get; set; }
             public Segment2d Segment { get; set; }
         }
 
+
         public class EventPoint : IEquatable<EventPoint>, IComparable<EventPoint>
         {
-            internal Vector2d Pt { get; }
-            internal int Sega { get; }
-            public int Segb { get; }
-            internal bool IsStart { get; }
-
-            public EventPoint(Vector2d pt, int sega, int segb, bool isStart)
+            public enum Type
             {
-                Pt = pt;
-                Sega = sega;
-                Segb = segb;
-                IsStart = isStart;
+                Start,
+                End,
+                Intersection
+            }
+
+            internal int A { get; }
+            internal int B { get; }
+            internal Type EventType { get; }
+            internal double X { get; }
+
+            public EventPoint(int a, int b, double x, Type eventType)
+            {
+                A = a;
+                B = b;
+                EventType = eventType;
+                X = x;
             }
 
             public bool Equals(EventPoint other)
             {
-                return Pt.Equals(other.Pt);
+                return A.Equals(other.A);
             }
 
             public override bool Equals(object obj)
@@ -690,9 +700,9 @@ namespace Coursera
             {
                 unchecked
                 {
-                    var hashCode = Pt.GetHashCode();
-                    hashCode = (hashCode * 397) ^ Sega;
-                    hashCode = (hashCode * 397) ^ IsStart.GetHashCode();
+                    var hashCode = A.GetHashCode();
+                    hashCode = (hashCode * 397) ^ X.GetHashCode();
+                    hashCode = (hashCode * 397) ^ EventType.GetHashCode();
                     return hashCode;
                 }
             }
@@ -701,106 +711,107 @@ namespace Coursera
             {
                 if (ReferenceEquals(this, other)) return 0;
                 if (ReferenceEquals(null, other)) return 1;
-                var ptComparison = Pt.CompareTo(other.Pt);
-                if (ptComparison != 0) return ptComparison;
-                var segaComparison = Sega.CompareTo(other.Sega);
-                if (segaComparison != 0) return segaComparison;
-                var segbComparison = Segb.CompareTo(other.Segb);
-                if (segbComparison != 0) return segbComparison;
-                return IsStart.CompareTo(other.IsStart);
+                var result = X.CompareTo(other.X);
+
+                if (result == 0)
+                {
+                    if (this.A > other.A)
+                        return 1;
+                    if(this.B > other.B)
+                        return 1;
+                    return -1;
+                }
+
+                return result;
             }
         }
 
-        public static IEnumerable<KeyValuePair<int, int>> SegmentIntersection(IEnumerable<Segment2d> arr)
+        public static List<KeyValuePair<int, int>> SegmentIntersection(Segment2d[] segments)
         {
-            var segments = arr.ToArray();
-            var eventPoints = new SortedSet<EventPoint>(new EventPointComparer());
+            var intersection = new List<KeyValuePair<int, int>>();;
+            var eventPoints = new SortedSet<EventPoint>();
             var status = new List<StatusPoint>();
 
             for (var i = 0; i < segments.Length; i++)
             {
-                status.Add(new StatusPoint(){InStatus = false, SegmentId = i, Segment = segments[i]});
-                eventPoints.Add(new EventPoint(segments[i].A, i, -1, true));
-                eventPoints.Add(new EventPoint(segments[i].B, i, -1, false));
-            }
+                var minx = Math.Min(segments[i].A.X, segments[i].B.X);
+                var maxx = Math.Max(segments[i].A.X, segments[i].B.X);
 
+                eventPoints.Add(new EventPoint(i, i, minx, EventPoint.Type.Start));
+                eventPoints.Add(new EventPoint(i, i, maxx, EventPoint.Type.End));
+            }
 
             while (eventPoints.Any())
             {
                 var evt = eventPoints.First();
                 eventPoints.Remove(evt);
 
-                if (!Vector2d.IsNaN(evt.Pt))
+                if (evt.A != evt.B)
                 {
-                    var sega = evt.Sega;
-                    var segb = evt.Segb;
+                    var aIdx = status.FindIndex(s => s.SegmentId == evt.A);
+                    var bIdx = status.FindIndex(s => s.SegmentId == evt.B);
 
-                    //slow shit
-                    var aIdx = status.FindIndex(s => s.SegmentId == sega);
-                    var bIdx = status.FindIndex(s => s.SegmentId == segb);
-
-                    //swap
                     var tempB = status[bIdx];
                     status[bIdx] = status[aIdx];
                     status[aIdx] = tempB;
 
-                    yield return new KeyValuePair<int, int>(aIdx, bIdx);
+                    intersection.Add(new KeyValuePair<int, int>(
+                        Math.Min(aIdx, bIdx),
+                        Math.Max(aIdx, bIdx)));
                 }
 
-                if (evt.IsStart)
+                if (evt.EventType == EventPoint.Type.Start)
                 {
-                    var segStartIdx = status.FindIndex(s => s.SegmentId == evt.Sega);
-                    status[segStartIdx].InStatus = true;
+                    var evtSeg = segments[evt.A];
 
-                    //check neighbours with true status
-                    //todo: compress the status
-                    for (int i = 0; i < status.Count - 1; i++)
-                    {
-                        if (status[i].InStatus && status[i + 1].InStatus)
-                        {
-                            var segA = status[i].Segment;
-                            var segB = status[i + 1].Segment;
-                            Vector2d intersection;
-                            Segment2d segInter;
+                    var next = Next(status, evtSeg);
+                    status.Insert(next, new StatusPoint
+                        { Segment = evtSeg, SegmentId = evt.A});
 
-                            if( segA.Intersection(segB, out intersection, out segInter));
-                            {
-                                var eventPoint = new EventPoint(intersection,
-                                    status[i].SegmentId, status[i + 1].SegmentId, false);
-
-                                eventPoints.Add(eventPoint);
-                            }
-                        }
-                    }
+                    CalculateAndUpdate(status, eventPoints);
                 }
-                else
+                else if(evt.EventType == EventPoint.Type.End)
                 {
-                    //do not remember what is going on here.
-                    var segEndIdx = status.FindIndex(s => s.SegmentId == evt.Sega);
-                    var index = status.FindIndex(s => s.SegmentId == segEndIdx);
-                    status[index].InStatus = false;
+                    var index = status.FindIndex(s => s.SegmentId == evt.A);
+                    if(index != -1)
+                        status.RemoveAt(index);
 
-                    //recompute the neighbours
-                    for (int i = 0; i < status.Count - 1; i++)
-                    {
-                        if (status[i].InStatus && status[i + 1].InStatus)
-                        {
-                            var segA = status[i].Segment;
-                            var segB = status[i + 1].Segment;
-                            Vector2d intersection;
-                            Segment2d segInter;
-
-                            if( segA.Intersection(segB, out intersection, out segInter));
-                            {
-                                var eventPoint = new EventPoint(intersection,
-                                    status[i].SegmentId, status[i + 1].SegmentId, false);
-
-                                eventPoints.Add(eventPoint);
-                            }
-                        }
-                    }
+                    CalculateAndUpdate(status, eventPoints);
                 }
             }
+
+            return intersection;
+        }
+
+        private static void CalculateAndUpdate(List<StatusPoint> status, SortedSet<EventPoint> eventPoints)
+        {
+            for (int i = 0; i < status.Count - 1; i++)
+            {
+                var segA = status[i].Segment;
+                var segB = status[i + 1].Segment;
+                Vector2d intersection;
+                Segment2d segInter;
+
+                if (segA.Intersection(segB, out intersection, out segInter)) ;
+                {
+                    var eventPoint = new EventPoint(
+                        status[i].SegmentId,
+                        status[i + 1].SegmentId,
+                        0, EventPoint.Type.Intersection);
+
+                    eventPoints.Add(eventPoint);
+                }
+            }
+        }
+
+        static int Next(List<StatusPoint> arr1, Segment2d target)
+        {
+            if (!arr1.Any()) return 0;
+
+            var segComparer = new SegmentsOriginXComparer();
+            var idx = arr1.FindIndex(s => segComparer.Compare(s.Segment, target) == 1);
+
+            return idx == -1 ? arr1.Count() : idx;
         }
 
         public static double Sqr(double value)
@@ -922,6 +933,19 @@ namespace Coursera
             return a.A.X < a.B.X ? 1 : -1;
         }
     }
+
+    public class SegmentsOriginXComparer : IComparer<Segment2d>
+    {
+        public int Compare(Segment2d a, Segment2d b)
+        {
+            if (a.A.X < b.A.X)
+                return 1;
+            return a.A.Y > a.B.Y
+                ? 1
+                : -1;
+        }
+    }
+
 
     public class EventPointComparer : IComparer<Vec.EventPoint>
     {
