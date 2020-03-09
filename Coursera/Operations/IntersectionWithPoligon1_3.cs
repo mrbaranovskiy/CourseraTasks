@@ -1,7 +1,8 @@
 using System.Collections.Generic;
-using System.Numerics;
+using Coursera.General;
+using Coursera.Structures;
 
-namespace Coursera
+namespace Coursera.Operations
 {
     public class IntersectionWithPoligon1_3 : IProcessTask
     {

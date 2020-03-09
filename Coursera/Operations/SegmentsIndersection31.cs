@@ -1,6 +1,8 @@
 using System;
+using Coursera.General;
+using Coursera.Structures;
 
-namespace Coursera
+namespace Coursera.Operations
 {
     public class SegmentsIndersection31 : IProcessTask
     {

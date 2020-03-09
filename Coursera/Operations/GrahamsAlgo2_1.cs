@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using Coursera.General;
+using Coursera.Structures;
 
-namespace Coursera
+namespace Coursera.Operations
 {
     public class GrahamsAlgo2_1 : IProcessTask
     {

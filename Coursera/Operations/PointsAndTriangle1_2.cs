@@ -1,10 +1,11 @@
-﻿using System.Numerics;
+﻿using Coursera.General;
+using Coursera.Structures;
 
-namespace Coursera
+namespace Coursera.Operations
 {
     public class PointsAndTriangle1_2 : IProcessTask
     {
-        private TriangleI ReadTriangle(string str)
+        private Triangle2d ReadTriangle(string str)
         {
             var tr = Parse.ParseIntArrayString(str, 6);
 
@@ -12,7 +13,7 @@ namespace Coursera
             var b = new Vector2d(tr[2], tr[3]);
             var c = new Vector2d(tr[4], tr[5]);
 
-            return new TriangleI(a, b, c);
+            return new Triangle2d(a, b, c);
         }
 
         public string[] ProcessTask(string[] stdIn)

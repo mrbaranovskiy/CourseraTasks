@@ -1,6 +1,7 @@
-﻿using System.Numerics;
+﻿using Coursera.General;
+using Coursera.Structures;
 
-namespace Coursera
+namespace Coursera.Operations
 {
     public class PointsAndVector1_1 : IProcessTask
     {
