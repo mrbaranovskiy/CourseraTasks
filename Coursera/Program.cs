@@ -14,11 +14,13 @@ namespace Coursera
     {
         static void Main(string[] args)
         {
-            var seg1 = new Segment2d(new Vector2d(-2, -1),  new Vector2d(2, 3));
-            var seg2 = new Segment2d(new Vector2d(2, 3),  new Vector2d(3, -2));
-            var seg3 = new Segment2d(new Vector2d(3, -2),  new Vector2d(-2, -1));
+            var seg1 = new Segment2d(new Vector2d(-5, -4),  new Vector2d(-5, 4));
+            var seg2 = new Segment2d(new Vector2d(-6, -3),  new Vector2d(-2, 1));
+            var seg3 = new Segment2d(new Vector2d(-6, 3),  new Vector2d(-4, -1));
+            var seg4 = new Segment2d(new Vector2d(-3, -2),  new Vector2d(-3, -4));
+            var seg5 = new Segment2d(new Vector2d(-4, 3),  new Vector2d(1, 3));
 
-            var arr = new[] {seg1, seg2, seg3};
+            var arr = new[] {seg1, seg2, seg3, seg4, seg5};
 
             var result1 = Vec.SegmentIntersection(arr);
 

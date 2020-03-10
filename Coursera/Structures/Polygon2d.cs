@@ -165,7 +165,23 @@ namespace Coursera.Structures
             var segments = current.Segments.ToList();
             segments.AddRange(other.Segments);
 
-            var result = Vec.SegmentIntersection(segments.ToArray());
+            var result = Vec.SegmentIntersection(segments.ToArray()).ToList();
+
+            var currentArr = current.AsArray();
+            var otherArr = other.AsArray();
+
+//            foreach (var p in currentArr)
+//            {
+//
+//                if (PointInPolygon(currentArr, p))
+//                    result.Add(p);
+//
+//            }
+//
+//            foreach (var VARIABLE in o)
+//            {
+//
+//            }
 
             if(!result.Any())
                 return new Polygon2d();
