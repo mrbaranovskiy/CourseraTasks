@@ -14,7 +14,7 @@ namespace Coursera.Structures
             Dir = dir;
         }
 
-        public bool RayWithSegment(Segment2d seg, out Vector2d? intersection)
+        public bool RayWithSegment(Segment2d seg, out Vector2d intersection)
         {
             Vector2d segDir = seg.Dir;
             double det = Dir.X * -segDir.Y + Dir.Y * segDir.X;
@@ -32,11 +32,11 @@ namespace Coursera.Structures
                     return true;
                 }
 
-                intersection = null;
+                intersection = Vector2d.NaN;
                 return false;
             }
 
-            intersection = null;
+            intersection = Vector2d.NaN;
             return false;
         }
     }

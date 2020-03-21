@@ -204,7 +204,7 @@ namespace Coursera.Structures
 
                 foreach (var segmentI in segments)
                 {
-                    Vector2d? intersection;
+                    Vector2d intersection;
                     if (ray.RayWithSegment(segmentI, out intersection)) count++;
                 }
 

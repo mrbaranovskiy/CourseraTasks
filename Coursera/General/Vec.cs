@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.Tracing;
 using System.Linq;
+using System.Net.Http.Headers;
 using Coursera.Comparers;
 using Coursera.Structures;
+using Wintellect.PowerCollections;
 
 namespace Coursera.General
 {
@@ -79,13 +82,11 @@ namespace Coursera.General
 
                 if (result == 0)
                 {
-                    if (A > other.A)
-                        return 1;
-                    if (B > other.B)
-                        return 1;
-                    if (B == other.B)
-                        return 0;
+                    var next = other.EventType;
+                    var prev = EventType;
 
+                    if (prev > next)
+                        return 1;
                     return -1;
                 }
 
@@ -93,74 +94,95 @@ namespace Coursera.General
             }
         }
 
+        public class SweepLine
+        {
+            public static double CurrentPosition { get; set; }
+        }
+
+        public class Segments2dComparer : IComparer<Segment2d>
+        {
+            private readonly SweepLine _sweepLine;
+            private readonly OriginComparer _comparer;
+
+            public Segments2dComparer(SweepLine sweepLine, OriginComparer comparer)
+            {
+                _sweepLine = sweepLine;
+                _comparer = comparer;
+            }
+
+            public int Compare(Segment2d x, Segment2d y)
+            {
+                var up = new Ray2d(new Vector2d(SweepLine.CurrentPosition, 0), Vector2d.UnitY);
+                var down = new Ray2d(new Vector2d(SweepLine.CurrentPosition, 0), new Vector2d(0, -1));
+
+
+                if (!up.RayWithSegment(x, out var segx))
+                    segx = down.RayWithSegment(x, out var x2) ? x2 : Vector2d.NaN;
+
+                if (!up.RayWithSegment(y, out var segy))
+                    segy = down.RayWithSegment(y, out var y2) ? y2 : Vector2d.NaN;
+
+                var xn = Vector2d.IsNaN(segx);
+                var yn = Vector2d.IsNaN(segy);
+
+                if (xn || yn)
+                    return 0;
+
+                return _comparer.Compare(segx, segy);
+            }
+        }
+
         public static SortedSet<Vector2d> SegmentIntersection(Segment2d[] segments)
         {
-            var intersection = new List<KeyValuePair<int, int>>();
-            var eventPoints = new SortedSet<EventPoint>();
             var intersectionPoints = new SortedSet<Vector2d>(new OriginComparer());
-            var status = new List<StatusPoint>();
+            var originComparer = new OriginComparer();
+            var sl = new SweepLine();
+            var status2 = new SortedList<Segment2d, int>(new Segments2dComparer(sl, originComparer));
+
+            var bag = new OrderedBag<EventPoint>();
 
             for (var i = 0; i < segments.Length; i++)
             {
                 var minx = Math.Min(segments[i].A.X, segments[i].B.X);
                 var maxx = Math.Max(segments[i].A.X, segments[i].B.X);
 
-                eventPoints.Add(new EventPoint(i, i, minx, EventPoint.Type.Start));
-                eventPoints.Add(new EventPoint(i, i, maxx, EventPoint.Type.End));
+                bag.Add(new EventPoint(i, i, minx, EventPoint.Type.Start));
+                bag.Add(new EventPoint(i, i, maxx, EventPoint.Type.End));
             }
 
-            while (eventPoints.Any())
+            while (bag.Any())
             {
-                var curEvent = eventPoints.First();
-                eventPoints.Remove(curEvent);
-
-                if (curEvent.A != curEvent.B)
-                {
-                    var aIdx = status.FindIndex(s => s.SegmentId == curEvent.A);
-                    var bIdx = status.FindIndex(s => s.SegmentId == curEvent.B);
-
-                    if(aIdx == -1 || bIdx == -1)
-                        continue;
-
-                    var tempB = status[bIdx];
-                    status[bIdx] = status[aIdx];
-                    status[aIdx] = tempB;
-
-                    intersection.Add(new KeyValuePair<int, int>(
-                        Math.Min(aIdx, bIdx),
-                        Math.Max(aIdx, bIdx)));
-                }
+                var curEvent = bag.RemoveFirst();
+                SweepLine.CurrentPosition = curEvent.X;
 
                 if (curEvent.EventType == EventPoint.Type.Start)
                 {
                     var evtSeg = segments[curEvent.A];
+                    status2[evtSeg] = curEvent.A;
 
-                    var next = Next(status, evtSeg);
-                    status.Insert(next, new StatusPoint
-                        {Segment = evtSeg, SegmentId = curEvent.A});
-
-                    CalculateAndUpdate(status, eventPoints, intersectionPoints);
+                    CalculateAndUpdate(status2, bag, intersectionPoints);
                 }
                 else if (curEvent.EventType == EventPoint.Type.End)
                 {
-                    CalculateAndUpdate(status, eventPoints, intersectionPoints);
+                    CalculateAndUpdate(status2, bag, intersectionPoints);
 
-                    var index = status.FindIndex(s => s.SegmentId == curEvent.A);
-                    if (index != -1)
-                        status.RemoveAt(index);
+                    var indexOfValue = status2.IndexOfValue(curEvent.A);
+                    if(indexOfValue > 0)
+                        status2.Remove(status2.Keys[indexOfValue]);
                 }
             }
 
             return intersectionPoints;
         }
 
-        private static void CalculateAndUpdate(List<StatusPoint> status, SortedSet<EventPoint> eventPoints,
+        private static void CalculateAndUpdate(SortedList<Segment2d, int> status, OrderedBag<EventPoint> eventPoints,
             SortedSet<Vector2d> intersections)
         {
-            for (int i = 0; i < status.Count - 1; i++)
+            for (int i = 0; i < status.Keys.Count - 1; i++)
             {
-                var segA = status[i].Segment;
-                var segB = status[i + 1].Segment;
+                var segA = status.Keys[i];
+                var segB = status.Keys[i + 1];
+
                 Vector2d intersection;
                 Segment2d segInter;
 
@@ -177,8 +199,8 @@ namespace Coursera.General
                     }
 
                     var eventPoint = new EventPoint(
-                        status[i].SegmentId,
-                        status[i + 1].SegmentId,
+                        status.Values[i],
+                        status.Values[i + 1],
                         0, EventPoint.Type.Intersection);
 
                     eventPoints.Add(eventPoint);

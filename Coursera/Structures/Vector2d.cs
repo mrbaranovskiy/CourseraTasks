@@ -43,6 +43,7 @@ namespace Coursera.Structures
         public double Y { get; }
         public static Vector2d NaN => new Vector2d(float.NaN, float.NaN);
         public static Vector2d UnitX => new Vector2d(1, 0);
+        public static Vector2d UnitY => new Vector2d(0, 1);
 
         public static bool IsNaN(Vector2d vec)
         {
