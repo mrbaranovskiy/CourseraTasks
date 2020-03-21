@@ -6,4 +6,8 @@
         <LangVersion>8</LangVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="XAct.Wintellect.PowerCollections" Version="0.0.1" />
+    </ItemGroup>
+
 </Project>
