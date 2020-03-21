@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using Coursera.Comparers;
 using Coursera.General;
 using Coursera.Structures;
 
@@ -16,8 +17,8 @@ namespace Coursera
         {
             var seg1 = new Segment2d(new Vector2d(-5, -4),  new Vector2d(-5, 4));
             var seg2 = new Segment2d(new Vector2d(-6, -3),  new Vector2d(-2, 1));
-            var seg3 = new Segment2d(new Vector2d(-6, 3),  new Vector2d(-4, -1));
-            var seg4 = new Segment2d(new Vector2d(-3, -2),  new Vector2d(-3, -4));
+            var seg3 = new Segment2d(new Vector2d(-6, 3),  new Vector2d(-4, 1));
+            var seg4 = new Segment2d(new Vector2d(-3, -2),  new Vector2d(-3, 4));
             var seg5 = new Segment2d(new Vector2d(-4, 3),  new Vector2d(1, 3));
 
             var arr = new[] {seg1, seg2, seg3, seg4, seg5};
@@ -32,7 +33,7 @@ namespace Coursera
             if (!list.Any())
                 Console.Error.WriteLine("CMD LINE ERROR!!!");
 
-            IProcessTask task1_1 = new PolygonsIntersection();
+            IProcessTask task1_1 = new PolygonsIntersection_3_2();
             var result = task1_1.ProcessTask(list.ToArray());
 
             Output(result);
