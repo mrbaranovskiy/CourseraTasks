@@ -1,5 +1,7 @@
 using System;
 using System.Security.Cryptography;
+using Encryptor.Crypto.Keys;
+using Encryptor.Crypto.Encryption;
 
 namespace Encryptor.Crypto
 {

@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using Encryptor.Crypto;
+using Encryptor.Crypto.Keys;
 using Moq;
 
 namespace EncryptorTest
@@ -23,9 +24,21 @@ namespace EncryptorTest
 
             var keyMock = new Mock<IKeyProvider>();
             keyMock.SetupGet(p => p.Key).Returns(cryptor.Key);
-            keyMock.SetupGet(p => p.Vi).Returns(cryptor.IV);
+            keyMock.SetupGet(p => p.IV).Returns(cryptor.IV);
 
             return keyMock.Object;
+        }
+
+        public static bool CompareBuffers(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            for (int i = 0; i < a.Length; i++)
+                if (a[i] != b[i])
+                    return false;
+
+            return true;
         }
     }
 }

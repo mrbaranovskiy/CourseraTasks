@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Encryptor.Crypto
+namespace Encryptor.Crypto.Encryption
 {
     /// <summary> Base crypto functionality </summary>
     internal interface ICrypto

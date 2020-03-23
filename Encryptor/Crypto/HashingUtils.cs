@@ -15,7 +15,7 @@ namespace Encryptor.Crypto
 
         internal static byte[] ComputeHash(byte[] buffer, HashAlgorithmType hashType)
         {
-            return HashAlgorithm.Create().ComputeHash(buffer);
+            return HashAlgorithm.Create(FromHashAlgo(hashType)).ComputeHash(buffer);
         }
 
         private static string FromHashAlgo(HashAlgorithmType type) => type switch

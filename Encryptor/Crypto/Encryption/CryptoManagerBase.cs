@@ -3,8 +3,9 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Encryptor.Crypto.Keys;
 
-namespace Encryptor.Crypto
+namespace Encryptor.Crypto.Encryption
 {
     internal abstract class CryptoManagerBase : ICrypto
     {
@@ -30,7 +31,7 @@ namespace Encryptor.Crypto
             return DecryptAsync(buffer, CancellationToken.None).Result;
         }
 
-        public async Task<ReadOnlyMemory<byte>> EncryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token)
+        public virtual async Task<ReadOnlyMemory<byte>> EncryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token)
         {
             if (buffer.Length == 0)
                 throw new ArgumentException(nameof(buffer) + "cannot be empty");
@@ -40,7 +41,7 @@ namespace Encryptor.Crypto
 
         private async Task<ReadOnlyMemory<byte>> EncryptAsyncInternal(ReadOnlyMemory<byte> buffer, CancellationToken token)
         {
-            var encryptor = _algorithm.CreateEncryptor(_provider.Key, _provider.Vi);
+            var encryptor = _algorithm.CreateEncryptor(_provider.Key, _provider.IV);
             await using var memoryStream = new MemoryStream();
             await using var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write);
 
@@ -48,17 +49,18 @@ namespace Encryptor.Crypto
 
             cryptoStream.Close();
 
-            return await ReadResultFromStream(memoryStream, buffer.Length);
+            return ReadResultFromStream(memoryStream);
         }
 
-        public async Task<ReadOnlyMemory<byte>> DecryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token)
+        public virtual async Task<ReadOnlyMemory<byte>> DecryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token)
         {
-            var decryptor = _algorithm.CreateDecryptor(_provider.Key, _provider.Vi);
+            var decryptor = _algorithm.CreateDecryptor(_provider.Key, _provider.IV);
             await using var memoryStream = new MemoryStream(buffer.ToArray());
             await using var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read);
 
             var buf = new byte[buffer.Length];
 
+            //that is super strange. It doesn't work with Memory<T> directly.
             await cryptoStream.ReadAsync(buf, 0, buf.Length, token);
             await cryptoStream.FlushAsync(token);
 
@@ -67,8 +69,7 @@ namespace Encryptor.Crypto
             return new Memory<byte>(buf);
         }
 
-        private static async Task<ReadOnlyMemory<byte>> ReadResultFromStream(MemoryStream stream,
-            int bufferLen) =>
+        private static ReadOnlyMemory<byte> ReadResultFromStream(MemoryStream stream) =>
             new Memory<byte>(stream.ToArray());
     }
 }
