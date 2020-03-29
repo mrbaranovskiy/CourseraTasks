@@ -1,6 +1,11 @@
 using System;
+using System.ComponentModel.Design;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using Encryptor.Core;
+using Encryptor.Core.Chunker;
 using Encryptor.Crypto;
 using Encryptor.Crypto.Encryption;
 using Encryptor.Crypto.Keys;
@@ -41,6 +46,28 @@ namespace EncryptorTest
             var result = Encoding.ASCII.GetString(decrypt.Span);
 
             Assert.IsTrue(string.Equals(result, textToEncrypt, StringComparison.Ordinal));
+        }
+
+        [TestMethod]
+        public void ChunkerTest1()
+        {
+            string secret = "Password";
+            var rijndaelManaged = new RijndaelManaged();
+            var keys = new SimpleKeyProvider(secret, rijndaelManaged);
+            var crypto = new ChunkEncryptor(keys, rijndaelManaged);
+            var service = new Sha1HashService();
+            
+            using var stream = TestUtils.StreamOfLength(CoreConstants.Chunk512Size * 2,
+                Encoding.UTF8, out var generated);
+            
+            Assert.IsTrue(stream.Length != 0);
+            
+            var chunker = new Chunker(service);
+            var chunkerEncrypted = new ChunkerEncrypted(chunker, crypto, service);
+            
+            var chunks = chunkerEncrypted.BuildChunks(stream, CancellationToken.None);
+            var result = chunks.ToArray();
+
         }
 
         [TestMethod]

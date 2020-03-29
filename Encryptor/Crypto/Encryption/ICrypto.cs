@@ -12,4 +12,26 @@ namespace Encryptor.Crypto.Encryption
         Task<ReadOnlyMemory<byte>> EncryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token);
         Task<ReadOnlyMemory<byte>> DecryptAsync(ReadOnlyMemory<byte> buffer, CancellationToken token);
     }
+
+    /// <summary>
+    /// Provides the hash ans checksum calculation service
+    /// </summary>
+    internal interface IHashService
+    {
+        byte[] Hash(byte[] arr);
+        byte[] Hash(string str);
+    }
+    
+    /// <summary>
+    /// Sha1 hashing service
+    /// </summary>
+    internal class Sha1HashService : IHashService
+    {
+        public byte[] Hash(byte[] arr) => HashingUtils.ComputeHash(arr);
+
+        public byte[] Hash(string str)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
